@@ -15,7 +15,6 @@ import Svg, { Path } from 'react-native-svg';
 import BLELoader from '../components/BLELoader';
 import DeviceCard from '../components/DeviceCard';
 import GradientBackground from '../components/GradientBackground';
-import PrimaryButton from '../components/PrimaryButton';
 import { useBleScan } from '../hooks/useBleScan';
 import { bleService } from '../services/bleService';
 import { useBLEStore } from '../store/useBLEStore';
@@ -28,7 +27,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Scan'>;
 export default function Scan({ navigation }: Props) {
   const devices = useBLEStore(state => state.scannedDevices);
   const connectedDevice = useBLEStore(state => state.connectedDevice);
-  const { isDemoMode, isScanning, startScan, stopScan, toggleDemoMode } = useBleScan();
+  const { isScanning, startScan, stopScan } = useBleScan();
   const [activeDevice, setActiveDevice] = useState<Device | null>(null);
 
   useEffect(() => {
@@ -82,20 +81,8 @@ export default function Scan({ navigation }: Props) {
                   {isScanning ? 'Searching for wearable devices' : 'Scan paused'}
                 </Text>
                 <Text style={styles.heroSubtitle}>
-                  {isDemoMode
-                    ? 'Demo mode is active so you can test the premium flow without a physical device.'
-                    : 'Keep your smart band close to the phone while we scan and resolve writable BLE services.'}
+                  Keep your smart band close to the phone while we scan and resolve writable BLE services.
                 </Text>
-
-                <View style={styles.toggleRow}>
-                  <Text style={styles.toggleLabel}>Demo mode</Text>
-                  <PrimaryButton
-                    title={isDemoMode ? 'Using demo data' : 'Use demo data'}
-                    variant="secondary"
-                    style={styles.demoButton}
-                    onPress={toggleDemoMode}
-                  />
-                </View>
               </View>
 
               <View style={styles.listHeader}>
@@ -110,7 +97,7 @@ export default function Scan({ navigation }: Props) {
             <View style={styles.emptyCard}>
               <Text style={styles.emptyTitle}>No wearables discovered yet</Text>
               <Text style={styles.emptyText}>
-                Keep scanning for a few seconds or enable demo mode to preview the app flow.
+                Keep scanning for a few seconds and make sure the band is powered on, nearby, and advertising over BLE.
               </Text>
             </View>
           }
@@ -167,13 +154,12 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingHorizontal: spacing.xl,
+    paddingTop: spacing.sm,
     paddingBottom: 120,
   },
   header: {
-    marginHorizontal: spacing.xl,
-    marginTop: spacing.sm,
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
   },
   backButton: {
     width: 42,
@@ -186,6 +172,7 @@ const styles = StyleSheet.create({
   },
   headerCopy: {
     flex: 1,
+    paddingTop: 2,
   },
   headerKicker: {
     color: palette.textSoft,
@@ -197,16 +184,18 @@ const styles = StyleSheet.create({
     color: palette.text,
     fontSize: 24,
     fontWeight: '700',
-    marginTop: 6,
+    lineHeight: 32,
+    marginTop: 4,
   },
   heroCard: {
-    marginHorizontal: spacing.xl,
-    marginTop: spacing.xl,
+    marginTop: spacing.lg,
     backgroundColor: palette.bgCard,
     borderRadius: radii.xl,
     borderWidth: 1,
     borderColor: palette.borderStrong,
-    padding: spacing.xl,
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.xl,
+    paddingBottom: spacing.xl + spacing.sm,
     alignItems: 'center',
   },
   heroTitle: {
@@ -214,6 +203,7 @@ const styles = StyleSheet.create({
     color: palette.text,
     fontSize: 24,
     fontWeight: '700',
+    lineHeight: 32,
     textAlign: 'center',
   },
   heroSubtitle: {
@@ -221,23 +211,9 @@ const styles = StyleSheet.create({
     color: palette.textMuted,
     textAlign: 'center',
     lineHeight: 22,
-  },
-  toggleRow: {
-    width: '100%',
-    marginTop: spacing.xl,
-  },
-  toggleLabel: {
-    color: palette.textSoft,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    fontSize: 11,
-    marginBottom: spacing.sm,
-  },
-  demoButton: {
-    minHeight: 48,
+    maxWidth: 300,
   },
   listHeader: {
-    marginHorizontal: spacing.xl,
     marginTop: spacing.xl,
     marginBottom: spacing.md,
   },
@@ -251,7 +227,8 @@ const styles = StyleSheet.create({
     color: palette.text,
     fontSize: 28,
     fontWeight: '700',
-    marginTop: 6,
+    lineHeight: 34,
+    marginTop: 4,
   },
   emptyCard: {
     backgroundColor: palette.bgCard,
@@ -264,6 +241,7 @@ const styles = StyleSheet.create({
     color: palette.text,
     fontSize: 20,
     fontWeight: '700',
+    lineHeight: 28,
     marginBottom: spacing.sm,
   },
   emptyText: {

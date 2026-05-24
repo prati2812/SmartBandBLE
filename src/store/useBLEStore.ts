@@ -10,7 +10,6 @@ interface BLEState {
   batteryLevel: number | null;
   lastSyncedAt: string | null;
   alarms: Alarm[];
-  isDemoMode: boolean;
   pendingPayload: string | null;
   addOrUpdateScannedDevice: (device: Device) => void;
   clearScannedDevices: () => void;
@@ -18,7 +17,6 @@ interface BLEState {
   setConnectedDevice: (device: Device | null) => void;
   setBatteryLevel: (level: number | null) => void;
   setLastSyncedAt: (value: string | null) => void;
-  setDemoMode: (value: boolean) => void;
   setPendingPayload: (value: string | null) => void;
   upsertAlarm: (alarm: Alarm) => void;
   toggleAlarm: (id: string) => void;
@@ -38,7 +36,6 @@ export const useBLEStore = create<BLEState>((set) => ({
   batteryLevel: null,
   lastSyncedAt: null,
   alarms: [],
-  isDemoMode: true,
   pendingPayload: null,
   addOrUpdateScannedDevice: (device) =>
     set((state) => {
@@ -67,7 +64,6 @@ export const useBLEStore = create<BLEState>((set) => ({
   setConnectedDevice: connectedDevice => set({ connectedDevice }),
   setBatteryLevel: batteryLevel => set({ batteryLevel }),
   setLastSyncedAt: lastSyncedAt => set({ lastSyncedAt }),
-  setDemoMode: isDemoMode => set({ isDemoMode }),
   setPendingPayload: pendingPayload => set({ pendingPayload }),
   upsertAlarm: (alarm) =>
     set((state) => {
