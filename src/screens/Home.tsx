@@ -31,6 +31,7 @@ export default function Home({ navigation }: Props) {
   const lastSyncedAt = useBLEStore(state => state.lastSyncedAt);
   const alarms = useBLEStore(state => state.alarms);
   const toggleAlarm = useBLEStore(state => state.toggleAlarm);
+  const [sendingTestPayload, setSendingTestPayload] = React.useState(false);
 
   const handleDisconnect = () => {
     Alert.alert(
@@ -66,6 +67,18 @@ export default function Home({ navigation }: Props) {
 
     const success = await bleService.syncEnabledAlarms(useBLEStore.getState().alarms);
     showToast(success ? 'Alarm payload synced to band' : 'Sync failed. Try again.');
+  };
+
+  const handleSendTestPayload = async () => {
+    if (!connectedDevice) {
+      showToast('Connect a wearable before sending a test payload');
+      return;
+    }
+
+    setSendingTestPayload(true);
+    const success = await bleService.sendTestPayload();
+    setSendingTestPayload(false);
+    showToast(success ? 'Test payload sent to band' : 'Test payload failed to send');
   };
 
   return (
@@ -109,6 +122,14 @@ export default function Home({ navigation }: Props) {
               variant="secondary"
               disabled={!connectedDevice}
               onPress={handleSync}
+            />
+            <View style={styles.ctaSpacer} />
+            <PrimaryButton
+              title="Send test payload"
+              variant="secondary"
+              loading={sendingTestPayload}
+              disabled={!connectedDevice}
+              onPress={handleSendTestPayload}
             />
           </View>
 

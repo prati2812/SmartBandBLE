@@ -8,12 +8,21 @@ import { buildAlarmPayload } from '../utils/format';
 
 export const SERVICE_UUID = '12345678-1234-1234-1234-123456789abc';
 export const CHARACTERISTIC_UUID = 'abcd1234-5678-90ab-cdef-123456789abc';
+const AUTO_SEND_TEST_PAYLOAD_ON_CONNECT = false;
 
 const nowTimeLabel = () =>
   new Date().toLocaleTimeString([], {
     hour: '2-digit',
     minute: '2-digit',
   });
+
+const buildTestAlarm = (): Alarm => ({
+  id: 'test-alarm',
+  time: '07:30',
+  enabled: true,
+  intensity: 70,
+  repeatDays: [1, 2, 3, 4, 5],
+});
 
 const buildMockDevices = (): Partial<Device>[] =>
   Array.from({ length: 4 }, (_, index) => {
@@ -135,7 +144,7 @@ class BLEService {
           const latestState = await this.manager.state();
           console.log(`[BLEService] BLE state after wait timeout: ${latestState}`);
           finish(latestState);
-        } catch (_error) {
+        } catch {
           finish(initialState);
         }
       }, timeoutMs);
@@ -281,7 +290,12 @@ class BLEService {
       const connected = await device.connect();
       const discovered = await connected.discoverAllServicesAndCharacteristics();
 
-      discovered.onDisconnected((_error, disconnectedDevice) => {
+      discovered.onDisconnected((error, disconnectedDevice) => {
+        console.log(
+          '[BLEService] Device disconnected:',
+          error?.message ?? 'No BLE error message',
+          disconnectedDevice?.id ?? 'unknown-device',
+        );
         if (disconnectedDevice) {
           useBLEStore.getState().resetConnection();
         }
@@ -292,6 +306,13 @@ class BLEService {
         batteryLevel: null,
         lastSyncedAt: nowTimeLabel(),
       });
+
+      if (AUTO_SEND_TEST_PAYLOAD_ON_CONNECT) {
+        const testPayloadSent = await this.sendTestPayload(discovered);
+        if (!testPayloadSent) {
+          console.log('[BLEService] Connected successfully, but automatic test payload send failed.');
+        }
+      }
 
       return { success: true, device: discovered };
     } catch (error) {
@@ -318,6 +339,43 @@ class BLEService {
     }
   }
 
+  private async writeJsonPayload(device: Device, payload: string) {
+    const encodedPayload = base64.encode(payload);
+    await device.writeCharacteristicWithResponseForService(
+      SERVICE_UUID,
+      CHARACTERISTIC_UUID,
+      encodedPayload,
+    );
+  }
+
+  async sendTestPayload(overrideDevice?: Device) {
+    const device = overrideDevice ?? useBLEStore.getState().connectedDevice;
+    if (!device) {
+      return false;
+    }
+
+    const payload = JSON.stringify(buildAlarmPayload(buildTestAlarm()), null, 2);
+    useBLEStore.getState().setPendingPayload(payload);
+    useBLEStore.getState().setConnectionStatus('syncing');
+
+    if (this.mockMode) {
+      await new Promise<void>(resolve => setTimeout(resolve, 900));
+      useBLEStore.getState().setLastSyncedAt(nowTimeLabel());
+      useBLEStore.getState().setConnectionStatus('connected');
+      return true;
+    }
+
+    try {
+      await this.writeJsonPayload(device, payload);
+      useBLEStore.getState().setLastSyncedAt(nowTimeLabel());
+      useBLEStore.getState().setConnectionStatus('connected');
+      return true;
+    } catch {
+      useBLEStore.getState().setConnectionStatus('connected');
+      return false;
+    }
+  }
+
   async sendAlarmConfig(alarm: Alarm) {
     const device = useBLEStore.getState().connectedDevice;
     if (!device) {
@@ -336,16 +394,11 @@ class BLEService {
     }
 
     try {
-      const encodedPayload = base64.encode(payload);
-      await device.writeCharacteristicWithResponseForService(
-        SERVICE_UUID,
-        CHARACTERISTIC_UUID,
-        encodedPayload,
-      );
+      await this.writeJsonPayload(device, payload);
       useBLEStore.getState().setLastSyncedAt(nowTimeLabel());
       useBLEStore.getState().setConnectionStatus('connected');
       return true;
-    } catch (_error) {
+    } catch {
       useBLEStore.getState().setConnectionStatus('connected');
       return false;
     }
