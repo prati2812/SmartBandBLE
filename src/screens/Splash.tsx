@@ -29,7 +29,7 @@ export default function Splash({ navigation }: Props) {
 
     const timer = setTimeout(() => {
       navigation.replace('Home');
-    }, 4200);
+    }, 2200);
 
     return () => clearTimeout(timer);
   }, [navigation, opacity, scale, translateY]);
@@ -44,14 +44,31 @@ export default function Splash({ navigation }: Props) {
       <View style={styles.container}>
         <Animated.View style={[styles.hero, heroStyle]}>
           <Svg width="128" height="128" viewBox="0 0 128 128" fill="none">
-            <Circle cx="64" cy="64" r="48" stroke="rgba(99,243,255,0.18)" strokeWidth="10" />
+            <Circle
+              cx="64"
+              cy="64"
+              r="48"
+              stroke="rgba(99,243,255,0.18)"
+              strokeWidth="10"
+              fill="none"
+            />
+
             <Path
-              d="M64 18C88.853 18 109 38.147 109 63C109 87.853 88.853 108 64 108"
+              d="M64 16 A48 48 0 1 1 64 112"
               stroke={palette.cyan}
               strokeWidth="10"
               strokeLinecap="round"
+              fill="none"
             />
-            <Circle cx="64" cy="64" r="18" fill="#0B1220" stroke={palette.cyan} strokeWidth="3" />
+
+            <Circle
+              cx="64"
+              cy="64"
+              r="18"
+              fill="#0B1220"
+              stroke={palette.cyan}
+              strokeWidth="3"
+            />
           </Svg>
           <Text style={styles.brand}>Smart Band</Text>
           <Text style={styles.subtitle}>Premium wearable control for life</Text>
@@ -80,7 +97,7 @@ const styles = StyleSheet.create({
   brand: {
     marginTop: spacing.xl,
     color: palette.text,
-    fontSize: 34,
+    fontSize: 24,
     fontWeight: '700',
     letterSpacing: 1.2,
   },
@@ -92,12 +109,11 @@ const styles = StyleSheet.create({
   },
   loaderBlock: {
     alignItems: 'center',
+    justifyContent: 'center',
   },
   loaderText: {
     color: palette.textSoft,
-    textTransform: 'uppercase',
     letterSpacing: 1,
     fontSize: 11,
-    marginTop: spacing.lg,
   },
 });
