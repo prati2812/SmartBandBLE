@@ -5,6 +5,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -24,6 +25,7 @@ import { palette, radii, spacing } from '../utils/theme';
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
 export default function Home({ navigation }: Props) {
+  const { width } = useWindowDimensions();
   const greeting = useGreeting();
   const connectionStatus = useBLEStore(state => state.connectionStatus);
   const connectedDevice = useBLEStore(state => state.connectedDevice);
@@ -31,7 +33,7 @@ export default function Home({ navigation }: Props) {
   const lastSyncedAt = useBLEStore(state => state.lastSyncedAt);
   const alarms = useBLEStore(state => state.alarms);
   const toggleAlarm = useBLEStore(state => state.toggleAlarm);
-  const [sendingTestPayload, setSendingTestPayload] = React.useState(false);
+  const isCompactLayout = width < 390;
 
   const handleDisconnect = () => {
     Alert.alert(
@@ -69,18 +71,6 @@ export default function Home({ navigation }: Props) {
     showToast(success ? 'Alarm payload synced to band' : 'Sync failed. Try again.');
   };
 
-  const handleSendTestPayload = async () => {
-    if (!connectedDevice) {
-      showToast('Connect a wearable before sending a test payload');
-      return;
-    }
-
-    setSendingTestPayload(true);
-    const success = await bleService.sendTestPayload();
-    setSendingTestPayload(false);
-    showToast(success ? 'Test payload sent to band' : 'Test payload failed to send');
-  };
-
   return (
     <GradientBackground>
       <SafeAreaView style={styles.safeArea}>
@@ -101,7 +91,7 @@ export default function Home({ navigation }: Props) {
             onDisconnect={handleDisconnect}
           />
 
-          <View style={styles.metricsRow}>
+          <View style={[styles.metricsRow, isCompactLayout && styles.metricsColumn]}>
             <BatteryCard level={batteryLevel} lastSyncedAt={lastSyncedAt} />
             <View style={styles.metricCard}>
               <Text style={styles.metricLabel}>Connected device</Text>
@@ -122,14 +112,6 @@ export default function Home({ navigation }: Props) {
               variant="secondary"
               disabled={!connectedDevice}
               onPress={handleSync}
-            />
-            <View style={styles.ctaSpacer} />
-            <PrimaryButton
-              title="Send test payload"
-              variant="secondary"
-              loading={sendingTestPayload}
-              disabled={!connectedDevice}
-              onPress={handleSendTestPayload}
             />
           </View>
 
@@ -167,36 +149,38 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    padding: spacing.xl,
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.sm,
     paddingBottom: 48,
   },
   header: {
-    marginTop: spacing.sm,
     marginBottom: spacing.xl,
   },
   kicker: {
     color: palette.cyan,
-    textTransform: 'uppercase',
     fontSize: 12,
     letterSpacing: 1.2,
-    marginBottom: 8,
   },
   title: {
     color: palette.text,
-    fontSize: 34,
+    fontSize: 26,
     fontWeight: '700',
+    lineHeight: 34,
+    marginTop: 4,
   },
   subtitle: {
     color: palette.textMuted,
-    fontSize: 15,
+    fontSize: 13,
     lineHeight: 22,
-    marginTop: spacing.sm,
-    maxWidth: 310,
+    marginTop: spacing.xs,
   },
   metricsRow: {
     marginTop: spacing.lg,
     flexDirection: 'row',
     gap: spacing.md,
+  },
+  metricsColumn: {
+    flexDirection: 'column',
   },
   metricCard: {
     flex: 1,
@@ -218,6 +202,7 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: '700',
     marginTop: spacing.sm,
+    lineHeight: 28,
   },
   metricMeta: {
     color: palette.textMuted,
@@ -236,7 +221,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-end',
   },
   sectionKicker: {
     color: palette.textSoft,
@@ -248,10 +233,12 @@ const styles = StyleSheet.create({
     color: palette.text,
     fontSize: 26,
     fontWeight: '700',
-    marginTop: 6,
+    lineHeight: 34,
+    marginTop: 4,
   },
   smallButton: {
     minHeight: 44,
     paddingHorizontal: spacing.md,
+    alignSelf: 'flex-end',
   },
 });

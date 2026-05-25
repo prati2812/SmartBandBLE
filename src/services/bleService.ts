@@ -1,4 +1,4 @@
-import { Alert, PermissionsAndroid, Platform } from 'react-native';
+import { PermissionsAndroid, Platform } from 'react-native';
 import base64 from 'react-native-base64';
 import { BleManager, Device, State } from 'react-native-ble-plx';
 
@@ -24,23 +24,9 @@ const buildTestAlarm = (): Alarm => ({
   repeatDays: [1, 2, 3, 4, 5],
 });
 
-const buildMockDevices = (): Partial<Device>[] =>
-  Array.from({ length: 4 }, (_, index) => {
-    const deviceNumber = `${index + 1}`.padStart(2, '0');
-
-    return {
-      id: `DE:MO:00:00:00:${deviceNumber}`,
-      name: `Smart Band ${deviceNumber}`,
-      localName: `Smart Band ${deviceNumber}`,
-      rssi: -45 - index * 8,
-    };
-  });
-
 class BLEService {
   private manager = new BleManager();
-  private mockInterval: ReturnType<typeof setInterval> | null = null;
   private scanTimeout: ReturnType<typeof setTimeout> | null = null;
-  private mockMode = true;
 
   constructor() {
     this.manager.onStateChange((state) => {
@@ -54,25 +40,11 @@ class BLEService {
     }, true);
   }
 
-  setMockMode(value: boolean) {
-    this.mockMode = value;
-    useBLEStore.getState().setDemoMode(value);
-  }
-
-  getMockMode() {
-    return this.mockMode;
-  }
-
   private getIdleStatus() {
     return useBLEStore.getState().connectedDevice ? 'connected' : 'idle';
   }
 
   private clearTimers() {
-    if (this.mockInterval) {
-      clearInterval(this.mockInterval);
-      this.mockInterval = null;
-    }
-
     if (this.scanTimeout) {
       clearTimeout(this.scanTimeout);
       this.scanTimeout = null;
@@ -107,10 +79,6 @@ class BLEService {
   }
 
   private async waitForPoweredOn(timeoutMs = 4000): Promise<State> {
-    if (this.mockMode) {
-      return State.PoweredOn;
-    }
-
     const initialState = await this.manager.state();
     console.log(`[BLEService] Initial BLE adapter state: ${initialState}`);
 
@@ -151,35 +119,16 @@ class BLEService {
     });
   }
 
-  private promptDemoMode(title: string, message: string) {
-    Alert.alert(title, message, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Use Demo Mode',
-        onPress: () => {
-          this.setMockMode(true);
-          this.startMockScan();
-        },
-      },
-    ]);
-  }
-
   async startScanning() {
     const store = useBLEStore.getState();
     store.clearScannedDevices();
     store.setConnectionStatus('scanning');
-    console.log(
-      `[BLEService] startScanning called. demoMode=${this.mockMode ? 'ON' : 'OFF'}`,
-    );
+    console.log('[BLEService] startScanning called.');
 
     const hasPermission = await this.requestPermissions();
     if (!hasPermission) {
       console.log('[BLEService] Required BLE permissions were not granted.');
       this.stopScanning();
-      this.promptDemoMode(
-        'BLE permissions required',
-        'Bluetooth permissions were denied. Grant permissions to scan real BLE devices, or switch to demo mode for UI testing.',
-      );
       return;
     }
 
@@ -187,16 +136,6 @@ class BLEService {
     if (bluetoothState !== State.PoweredOn) {
       console.log(`[BLEService] Bluetooth adapter is not ready. finalState=${bluetoothState}`);
       this.stopScanning();
-      this.promptDemoMode(
-        'Bluetooth unavailable',
-        `Bluetooth is not ready for BLE scanning. Current state: ${bluetoothState}. Please make sure Bluetooth is turned on and permissions are allowed, then try again. If you are still blocked, you can use demo mode.`,
-      );
-      return;
-    }
-
-    if (this.mockMode) {
-      console.log('[BLEService] Demo mode is ON. Starting mock scan flow.');
-      this.startMockScan();
       return;
     }
 
@@ -206,10 +145,6 @@ class BLEService {
       if (error) {
         console.log('[BLEService] Native BLE scan error:', error);
         this.stopScanning();
-        this.promptDemoMode(
-          'BLE scan failed',
-          'The Bluetooth scan could not start in this environment. Try again on a physical Android device, or use demo mode.',
-        );
         return;
       }
 
@@ -237,34 +172,6 @@ class BLEService {
     }, 14000);
   }
 
-  private startMockScan() {
-    this.clearTimers();
-    useBLEStore.getState().setConnectionStatus('scanning');
-    useBLEStore.getState().clearScannedDevices();
-    const mockDevices = buildMockDevices();
-    console.log(`[BLEService] Mock scanning started with ${mockDevices.length} generated devices.`);
-
-    let index = 0;
-    this.mockInterval = setInterval(() => {
-      if (index >= mockDevices.length) {
-        console.log('[BLEService] Mock scan completed.');
-        this.stopScanning();
-        return;
-      }
-
-      useBLEStore.getState().addOrUpdateScannedDevice(mockDevices[index] as Device);
-      console.log(
-        `[BLEService] Mock device emitted: ${(mockDevices[index]?.name as string) ?? mockDevices[index]?.id}`,
-      );
-      index += 1;
-    }, 800);
-
-    this.scanTimeout = setTimeout(() => {
-      console.log('[BLEService] Mock scan timed out after 9 seconds.');
-      this.stopScanning();
-    }, 9000);
-  }
-
   stopScanning() {
     console.log('[BLEService] stopScanning called.');
     this.clearTimers();
@@ -275,16 +182,6 @@ class BLEService {
   async connectToDevice(device: Device): Promise<ConnectResult> {
     this.stopScanning();
     useBLEStore.getState().setConnectionStatus('connecting');
-
-    if (this.mockMode) {
-      await new Promise<void>(resolve => setTimeout(resolve, 1800));
-      useBLEStore.getState().hydrateConnectionSnapshot({
-        device,
-        batteryLevel: null,
-        lastSyncedAt: nowTimeLabel(),
-      });
-      return { success: true, device };
-    }
 
     try {
       const connected = await device.connect();
@@ -329,10 +226,8 @@ class BLEService {
     useBLEStore.getState().setConnectionStatus('connecting');
 
     try {
-      if (device && !this.mockMode) {
+      if (device) {
         await this.manager.cancelDeviceConnection(device.id);
-      } else {
-        await new Promise<void>(resolve => setTimeout(resolve, 600));
       }
     } finally {
       useBLEStore.getState().resetConnection();
@@ -358,13 +253,6 @@ class BLEService {
     useBLEStore.getState().setPendingPayload(payload);
     useBLEStore.getState().setConnectionStatus('syncing');
 
-    if (this.mockMode) {
-      await new Promise<void>(resolve => setTimeout(resolve, 900));
-      useBLEStore.getState().setLastSyncedAt(nowTimeLabel());
-      useBLEStore.getState().setConnectionStatus('connected');
-      return true;
-    }
-
     try {
       await this.writeJsonPayload(device, payload);
       useBLEStore.getState().setLastSyncedAt(nowTimeLabel());
@@ -385,13 +273,6 @@ class BLEService {
     const payload = JSON.stringify(buildAlarmPayload(alarm), null, 2);
     useBLEStore.getState().setPendingPayload(payload);
     useBLEStore.getState().setConnectionStatus('syncing');
-
-    if (this.mockMode) {
-      await new Promise<void>(resolve => setTimeout(resolve, 900));
-      useBLEStore.getState().setLastSyncedAt(nowTimeLabel());
-      useBLEStore.getState().setConnectionStatus('connected');
-      return true;
-    }
 
     try {
       await this.writeJsonPayload(device, payload);
