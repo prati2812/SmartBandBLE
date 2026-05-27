@@ -1,13 +1,35 @@
-import { Alarm, AlarmPayload } from '../types/ble';
+import { Alarm, AlarmPayload, SyncAlarmsPayload } from '../types/ble';
 import { palette } from './theme';
 
 const weekdayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 export const buildAlarmPayload = (alarm: Alarm): AlarmPayload => ({
-  type: 'alarm',
-  time: alarm.time,
+  cmd: 'set_alarm',
+  alarm_id: alarm.id,
+  alarm_time: alarm.time,
   enabled: alarm.enabled,
   intensity: alarm.intensity,
+  duration_sec: alarm.duration_sec ?? 60,
+  snooze: alarm.snooze ?? 5,
+  pattern: alarm.pattern ?? 'normal',
+  repeat: alarm.repeatDays.map(day => weekdayNames[day]),
+});
+
+export const buildSyncAlarmsPayload = (alarms: Alarm[]): SyncAlarmsPayload => ({
+  cmd: 'sync_alarms',
+  alarms: alarms.map(alarm => {
+    const payload = buildAlarmPayload(alarm);
+    return {
+      alarm_id: payload.alarm_id,
+      alarm_time: payload.alarm_time,
+      enabled: payload.enabled,
+      intensity: payload.intensity,
+      duration_sec: payload.duration_sec,
+      snooze: payload.snooze,
+      pattern: payload.pattern,
+      repeat: payload.repeat,
+    };
+  }),
 });
 
 export const formatTime12Hour = (value: string) => {

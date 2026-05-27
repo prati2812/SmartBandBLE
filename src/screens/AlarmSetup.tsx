@@ -41,6 +41,11 @@ export default function AlarmSetup({ navigation, route }: Props) {
   const [repeatDays, setRepeatDays] = useState<number[]>(
     existingAlarm?.repeatDays ?? [1, 2, 3, 4, 5],
   );
+  const [durationSec, setDurationSec] = useState(existingAlarm?.duration_sec ?? 60);
+  const [snooze, setSnooze] = useState(existingAlarm?.snooze ?? 5);
+  const [pattern, setPattern] = useState<'normal' | 'gentle' | 'heavy_sleeper' | 'escalating'>(
+    existingAlarm?.pattern ?? 'normal',
+  );
   const [saving, setSaving] = useState(false);
 
   const draftAlarm: Alarm = useMemo(
@@ -50,8 +55,11 @@ export default function AlarmSetup({ navigation, route }: Props) {
       enabled,
       intensity,
       repeatDays,
+      duration_sec: durationSec,
+      snooze,
+      pattern,
     }),
-    [enabled, existingAlarm?.id, intensity, repeatDays, time],
+    [enabled, existingAlarm?.id, intensity, repeatDays, time, durationSec, snooze, pattern],
   );
 
   const payloadPreview = JSON.stringify(buildAlarmPayload(draftAlarm), null, 2);
@@ -141,6 +149,74 @@ export default function AlarmSetup({ navigation, route }: Props) {
                     style={[styles.dayPill, selected && styles.dayPillSelected]}>
                     <Text style={[styles.dayText, selected && styles.dayTextSelected]}>
                       {day}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+
+          <View style={styles.daysCard}>
+            <Text style={styles.cardLabel}>Vibration Pattern</Text>
+            <View style={styles.patternRow}>
+              {(['normal', 'gentle', 'heavy_sleeper', 'escalating'] as const).map((pat) => {
+                const selected = pattern === pat;
+                const label = pat.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+                return (
+                  <Pressable
+                    key={pat}
+                    onPress={() => setPattern(pat)}
+                    style={[styles.patternOption, selected && styles.patternOptionSelected]}>
+                    <Text style={[styles.patternText, selected && styles.patternTextSelected]}>
+                      {label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+
+          <View style={styles.daysCard}>
+            <Text style={styles.cardLabel}>Snooze duration</Text>
+            <View style={styles.durationRow}>
+              {[
+                { label: 'Off', value: 0 },
+                { label: '5m', value: 5 },
+                { label: '10m', value: 10 },
+                { label: '15m', value: 15 },
+              ].map((opt) => {
+                const selected = snooze === opt.value;
+                return (
+                  <Pressable
+                    key={opt.value}
+                    onPress={() => setSnooze(opt.value)}
+                    style={[styles.durationOption, selected && styles.durationOptionSelected]}>
+                    <Text style={[styles.durationText, selected && styles.durationTextSelected]}>
+                      {opt.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+
+          <View style={styles.daysCard}>
+            <Text style={styles.cardLabel}>Alarm duration</Text>
+            <View style={styles.durationRow}>
+              {[
+                { label: '30s', value: 30 },
+                { label: '1m', value: 60 },
+                { label: '2m', value: 120 },
+                { label: '5m', value: 300 },
+              ].map((opt) => {
+                const selected = durationSec === opt.value;
+                return (
+                  <Pressable
+                    key={opt.value}
+                    onPress={() => setDurationSec(opt.value)}
+                    style={[styles.durationOption, selected && styles.durationOptionSelected]}>
+                    <Text style={[styles.durationText, selected && styles.durationTextSelected]}>
+                      {opt.label}
                     </Text>
                   </Pressable>
                 );
@@ -240,6 +316,63 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginTop: spacing.sm,
+  },
+  patternRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    marginTop: spacing.sm,
+  },
+  patternOption: {
+    flex: 1,
+    minWidth: '45%',
+    height: 44,
+    borderRadius: radii.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  patternOptionSelected: {
+    backgroundColor: 'rgba(0, 240, 255, 0.1)',
+    borderColor: palette.cyan,
+  },
+  patternText: {
+    color: palette.textMuted,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  patternTextSelected: {
+    color: palette.cyan,
+  },
+  durationRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: spacing.xs,
+    marginTop: spacing.sm,
+  },
+  durationOption: {
+    flex: 1,
+    height: 40,
+    borderRadius: radii.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  durationOptionSelected: {
+    backgroundColor: 'rgba(0, 240, 255, 0.1)',
+    borderColor: palette.cyan,
+  },
+  durationText: {
+    color: palette.textMuted,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  durationTextSelected: {
+    color: palette.cyan,
   },
   dayPill: {
     width: 42,

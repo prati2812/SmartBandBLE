@@ -13,13 +13,26 @@ export interface Alarm {
   enabled: boolean;
   intensity: number;
   repeatDays: number[];
+  duration_sec: number;
+  snooze: number;
+  pattern: 'normal' | 'gentle' | 'heavy_sleeper' | 'escalating';
 }
 
 export interface AlarmPayload {
-  type: 'alarm';
-  time: string;
+  cmd: 'set_alarm';
+  alarm_id: string;
+  alarm_time: string;
   enabled: boolean;
   intensity: number;
+  duration_sec: number;
+  snooze: number;
+  pattern: 'normal' | 'gentle' | 'heavy_sleeper' | 'escalating';
+  repeat: string[];
+}
+
+export interface SyncAlarmsPayload {
+  cmd: 'sync_alarms';
+  alarms: Omit<AlarmPayload, 'cmd'>[];
 }
 
 export interface ConnectResult {

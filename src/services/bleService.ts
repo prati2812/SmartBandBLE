@@ -4,10 +4,11 @@ import { BleManager, Device, State } from 'react-native-ble-plx';
 
 import { useBLEStore } from '../store/useBLEStore';
 import { Alarm, ConnectResult } from '../types/ble';
-import { buildAlarmPayload } from '../utils/format';
+import { buildAlarmPayload, buildSyncAlarmsPayload } from '../utils/format';
 
 export const SERVICE_UUID = '12345678-1234-1234-1234-123456789abc';
 export const CHARACTERISTIC_UUID = 'abcd1234-5678-90ab-cdef-123456789abc';
+export const NOTIFY_CHAR_UUID = 'beb5483e-36e1-4688-b7f5-ea07361b26a9';
 const AUTO_SEND_TEST_PAYLOAD_ON_CONNECT = false;
 
 const nowTimeLabel = () =>
@@ -22,6 +23,9 @@ const buildTestAlarm = (): Alarm => ({
   enabled: true,
   intensity: 70,
   repeatDays: [1, 2, 3, 4, 5],
+  duration_sec: 60,
+  snooze: 5,
+  pattern: 'normal',
 });
 
 class BLEService {
@@ -179,6 +183,17 @@ class BLEService {
     useBLEStore.getState().setConnectionStatus(this.getIdleStatus());
   }
 
+  async syncDeviceTime(device: Device) {
+    const offsetInSeconds = -new Date().getTimezoneOffset() * 60;
+    const localEpochInSeconds = Math.floor(Date.now() / 1000) + offsetInSeconds;
+    const payload = JSON.stringify({
+      cmd: 'sync_time',
+      epoch: localEpochInSeconds,
+    });
+    console.log('[BLEService] Syncing time with timezone-adjusted payload:', payload);
+    await this.writeJsonPayload(device, payload);
+  }
+
   async connectToDevice(device: Device): Promise<ConnectResult> {
     this.stopScanning();
     useBLEStore.getState().setConnectionStatus('connecting');
@@ -197,6 +212,49 @@ class BLEService {
           useBLEStore.getState().resetConnection();
         }
       });
+
+      // Android MTU Negotiation
+      if (Platform.OS === 'android') {
+        try {
+          await discovered.requestMTU(256);
+          console.log('[BLEService] Android MTU negotiated to 256 bytes.');
+        } catch (error) {
+          console.warn('[BLEService] MTU negotiation failed:', error);
+        }
+      }
+
+      // Sync Time (virtual RTC initialization)
+      try {
+        await this.syncDeviceTime(discovered);
+        console.log('[BLEService] Time sync complete.');
+      } catch (error) {
+        console.warn('[BLEService] Time sync failed:', error);
+      }
+
+      // Subscribe to telemetry notifications
+      discovered.monitorCharacteristicForService(
+        SERVICE_UUID,
+        NOTIFY_CHAR_UUID,
+        (error, char) => {
+          if (error) {
+            console.error('[BLEService] Telemetry monitor error:', error);
+            return;
+          }
+          if (char?.value) {
+            try {
+              const decoded = base64.decode(char.value);
+              console.log('[BLEService] Telemetry notification received:', decoded);
+              const data = JSON.parse(decoded);
+              if (typeof data.battery === 'number') {
+                useBLEStore.getState().setBatteryLevel(data.battery);
+              }
+              useBLEStore.getState().setLastSyncedAt(nowTimeLabel());
+            } catch (e) {
+              console.warn('[BLEService] Failed to parse telemetry JSON:', e);
+            }
+          }
+        },
+      );
 
       useBLEStore.getState().hydrateConnectionSnapshot({
         device: discovered,
@@ -249,7 +307,7 @@ class BLEService {
       return false;
     }
 
-    const payload = JSON.stringify(buildAlarmPayload(buildTestAlarm()), null, 2);
+    const payload = JSON.stringify(buildAlarmPayload(buildTestAlarm()));
     useBLEStore.getState().setPendingPayload(payload);
     useBLEStore.getState().setConnectionStatus('syncing');
 
@@ -270,7 +328,7 @@ class BLEService {
       return false;
     }
 
-    const payload = JSON.stringify(buildAlarmPayload(alarm), null, 2);
+    const payload = JSON.stringify(buildAlarmPayload(alarm));
     useBLEStore.getState().setPendingPayload(payload);
     useBLEStore.getState().setConnectionStatus('syncing');
 
@@ -286,18 +344,25 @@ class BLEService {
   }
 
   async syncEnabledAlarms(alarms: Alarm[]) {
-    for (const alarm of alarms) {
-      if (!alarm.enabled) {
-        continue;
-      }
-
-      const success = await this.sendAlarmConfig(alarm);
-      if (!success) {
-        return false;
-      }
+    const device = useBLEStore.getState().connectedDevice;
+    if (!device) {
+      return false;
     }
 
-    return true;
+    const payload = JSON.stringify(buildSyncAlarmsPayload(alarms));
+    useBLEStore.getState().setPendingPayload(payload);
+    useBLEStore.getState().setConnectionStatus('syncing');
+
+    try {
+      await this.writeJsonPayload(device, payload);
+      useBLEStore.getState().setLastSyncedAt(nowTimeLabel());
+      useBLEStore.getState().setConnectionStatus('connected');
+      return true;
+    } catch (error) {
+      console.error('[BLEService] Bulk sync failed:', error);
+      useBLEStore.getState().setConnectionStatus('connected');
+      return false;
+    }
   }
 
   destroy() {
