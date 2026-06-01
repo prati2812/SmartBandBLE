@@ -157,12 +157,15 @@ class BLEService {
       }
 
       console.log(
-        `[BLEService] Device discovered id=${device.id} name=${device.name ?? 'N/A'} localName=${
-          device.localName ?? 'N/A'
+        `[BLEService] Device discovered id=${device.id} name=${device.name ?? 'N/A'} localName=${device.localName ?? 'N/A'
         } rssi=${device.rssi ?? 'N/A'}`,
       );
 
-      if (device.name || device.localName) {
+      const hasMatchingService = device.serviceUUIDs?.some(
+        (uuid) => uuid.toLowerCase() === SERVICE_UUID.toLowerCase(),
+      );
+
+      if (device.name || device.localName || hasMatchingService) {
         useBLEStore.getState().addOrUpdateScannedDevice(device);
         console.log(`[BLEService] Device added to scan list: ${device.id}`);
       } else {

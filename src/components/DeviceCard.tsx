@@ -5,6 +5,7 @@ import Svg, { Path } from 'react-native-svg';
 
 import { getSignalTone } from '../utils/format';
 import { palette, radii, shadows, spacing } from '../utils/theme';
+import { SERVICE_UUID } from '../services/bleService';
 
 interface DeviceCardProps {
   device: Device;
@@ -21,6 +22,9 @@ export default function DeviceCard({
 }: DeviceCardProps) {
   const signal = getSignalTone(device.rssi);
   const rssi = device.rssi ?? -99;
+  const hasMatchingService = device.serviceUUIDs?.some(
+    (uuid) => uuid.toLowerCase() === SERVICE_UUID.toLowerCase(),
+  );
 
   return (
     <Pressable
@@ -45,7 +49,7 @@ export default function DeviceCard({
 
         <View style={styles.titleWrap}>
           <Text numberOfLines={1} style={styles.deviceName}>
-            {device.name || device.localName || 'Unnamed wearable'}
+            {device.name || device.localName || (hasMatchingService ? 'LapidVibe Band' : 'Unnamed wearable')}
           </Text>
           <Text numberOfLines={1} style={styles.deviceId}>
             {device.id}
