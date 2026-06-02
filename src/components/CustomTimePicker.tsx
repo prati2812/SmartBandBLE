@@ -32,9 +32,9 @@ export default function CustomTimePicker({
       <View style={styles.controls}>
         <Pressable style={styles.controlButton} onPress={() => onChange(bumpTime(value, -15))}>
           <Svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-            <Path d="M15 18L9 12L15 6" stroke={palette.cyan} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+            <Path d="M15 18L9 12L15 6" stroke={palette.whoopBlue} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
           </Svg>
-          <Text style={styles.controlText}>-15 min</Text>
+          <Text style={styles.controlText}>-15 MIN</Text>
         </Pressable>
 
         <View style={styles.chip}>
@@ -42,9 +42,9 @@ export default function CustomTimePicker({
         </View>
 
         <Pressable style={styles.controlButton} onPress={() => onChange(bumpTime(value, 15))}>
-          <Text style={styles.controlText}>+15 min</Text>
+          <Text style={styles.controlText}>+15 MIN</Text>
           <Svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-            <Path d="M9 18L15 12L9 6" stroke={palette.cyan} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+            <Path d="M9 18L15 12L9 6" stroke={palette.whoopBlue} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
           </Svg>
         </Pressable>
       </View>
@@ -54,26 +54,28 @@ export default function CustomTimePicker({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: palette.bgCard,
+    backgroundColor: palette.bgCardStrong,
     borderWidth: 1,
     borderColor: palette.border,
-    borderRadius: radii.lg,
-    padding: spacing.lg,
+    borderRadius: radii.md,
+    padding: spacing.md,
   },
   label: {
     color: palette.textSoft,
-    fontSize: 12,
+    fontSize: 10,
     textTransform: 'uppercase',
-    letterSpacing: 0.8,
+    letterSpacing: 1,
+    fontWeight: '700',
   },
   time: {
     color: palette.text,
-    fontSize: 40,
-    fontWeight: '700',
-    marginTop: spacing.sm,
+    fontSize: 42,
+    fontWeight: '800',
+    marginTop: spacing.xs,
+    letterSpacing: -0.5,
   },
   controls: {
-    marginTop: spacing.lg,
+    marginTop: spacing.md,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -82,23 +84,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingVertical: 12,
-    paddingHorizontal: spacing.sm,
+    paddingVertical: 10,
   },
   controlText: {
-    color: palette.cyan,
-    fontWeight: '600',
+    color: palette.whoopBlue,
+    fontWeight: '700',
+    fontSize: 11,
+    letterSpacing: 0.5,
   },
   chip: {
-    backgroundColor: 'rgba(99, 243, 255, 0.08)',
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    paddingVertical: 6,
     borderRadius: radii.pill,
     borderWidth: 1,
-    borderColor: palette.borderStrong,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   chipText: {
     color: palette.text,
     fontWeight: '700',
+    fontSize: 13,
   },
 });
+

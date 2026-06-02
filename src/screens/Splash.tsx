@@ -48,7 +48,7 @@ export default function Splash({ navigation }: Props) {
               cx="64"
               cy="64"
               r="48"
-              stroke="rgba(99,243,255,0.18)"
+              stroke="rgba(0,119,255,0.18)"
               strokeWidth="10"
               fill="none"
             />
@@ -65,7 +65,7 @@ export default function Splash({ navigation }: Props) {
               cx="64"
               cy="64"
               r="18"
-              fill="#0B1220"
+              fill={palette.bgElevated}
               stroke={palette.cyan}
               strokeWidth="3"
             />

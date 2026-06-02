@@ -1,4 +1,4 @@
-import { PermissionsAndroid, Platform } from 'react-native';
+import { Alert, PermissionsAndroid, Platform } from 'react-native';
 import base64 from 'react-native-base64';
 import { BleManager, Device, State } from 'react-native-ble-plx';
 
@@ -139,8 +139,29 @@ class BLEService {
     const bluetoothState = await this.waitForPoweredOn();
     if (bluetoothState !== State.PoweredOn) {
       console.log(`[BLEService] Bluetooth adapter is not ready. finalState=${bluetoothState}`);
-      this.stopScanning();
-      return;
+      if (Platform.OS === 'android') {
+        try {
+          console.log('[BLEService] Attempting to enable Bluetooth programmatically on Android...');
+          await this.manager.enable();
+          const recheckState = await this.waitForPoweredOn();
+          if (recheckState !== State.PoweredOn) {
+            this.stopScanning();
+            return;
+          }
+        } catch (error) {
+          console.warn('[BLEService] Programmatic Bluetooth enable failed:', error);
+          this.stopScanning();
+          return;
+        }
+      } else {
+        Alert.alert(
+          'Bluetooth Required',
+          'Please enable Bluetooth in your device settings to scan for and connect to your smart band.',
+          [{ text: 'OK' }]
+        );
+        this.stopScanning();
+        return;
+      }
     }
 
     this.clearTimers();

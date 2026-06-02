@@ -110,9 +110,9 @@ export default function AlarmSetup({ navigation, route }: Props) {
             </Svg>
           </Pressable>
           <View style={styles.headerCopy}>
-            <Text style={styles.headerKicker}>Alarm payload designer</Text>
+            <Text style={styles.headerKicker}>Sleep Coach Settings</Text>
             <Text style={styles.headerTitle}>
-              {existingAlarm ? 'Edit smart alarm' : 'Create smart alarm'}
+              {existingAlarm ? 'Edit Smart Alarm' : 'Create Smart Alarm'}
             </Text>
           </View>
         </View>
@@ -124,14 +124,14 @@ export default function AlarmSetup({ navigation, route }: Props) {
             <View>
               <Text style={styles.cardLabel}>Alarm enabled</Text>
               <Text style={styles.cardText}>
-                Let the wearable vibrate at the selected time.
+                Allow wearable haptics to trigger at the selected time.
               </Text>
             </View>
             <Switch
               value={enabled}
               onValueChange={setEnabled}
-              thumbColor={enabled ? palette.bg : palette.white}
-              trackColor={{ false: '#243042', true: palette.cyan }}
+              thumbColor={enabled ? palette.text : palette.textSoft}
+              trackColor={{ false: 'rgba(255,255,255,0.06)', true: palette.whoopGreen }}
             />
           </View>
 
@@ -225,11 +225,14 @@ export default function AlarmSetup({ navigation, route }: Props) {
           </View>
 
           <View style={styles.payloadCard}>
-            <Text style={styles.cardLabel}>JSON payload preview</Text>
+            <View style={styles.payloadHeader}>
+              <View style={styles.payloadTerminalDot} />
+              <Text style={styles.payloadTitle}>PAYLOAD CONSOLE</Text>
+            </View>
             <Text style={styles.payloadText}>{payloadPreview}</Text>
           </View>
 
-          <PrimaryButton title="Save alarm" onPress={handleSave} loading={saving} />
+          <PrimaryButton title="Save settings" onPress={handleSave} loading={saving} />
           {existingAlarm ? (
             <PrimaryButton
               title="Delete alarm"
@@ -255,12 +258,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   backButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
     marginRight: spacing.md,
   },
   headerCopy: {
@@ -269,26 +274,28 @@ const styles = StyleSheet.create({
   headerKicker: {
     color: palette.textSoft,
     textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    fontSize: 12,
+    letterSpacing: 1.2,
+    fontSize: 10,
+    fontWeight: '700',
   },
   headerTitle: {
     color: palette.text,
-    fontSize: 26,
-    fontWeight: '700',
-    marginTop: 6,
+    fontSize: 24,
+    fontWeight: '800',
+    marginTop: 2,
+    letterSpacing: -0.5,
   },
   content: {
-    paddingTop: spacing.xl,
+    paddingTop: spacing.lg,
     paddingBottom: 48,
-    gap: spacing.lg,
+    gap: spacing.md,
   },
   toggleCard: {
-    backgroundColor: palette.bgCard,
-    borderRadius: radii.lg,
+    backgroundColor: palette.bgCardStrong,
+    borderRadius: radii.md,
     borderWidth: 1,
     borderColor: palette.border,
-    padding: spacing.lg,
+    padding: spacing.md,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -296,32 +303,34 @@ const styles = StyleSheet.create({
   cardLabel: {
     color: palette.textSoft,
     textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    fontSize: 12,
-    marginBottom: spacing.sm,
+    letterSpacing: 1,
+    fontSize: 10,
+    fontWeight: '700',
+    marginBottom: spacing.xs,
   },
   cardText: {
     color: palette.textMuted,
     maxWidth: 220,
-    lineHeight: 20,
+    lineHeight: 18,
+    fontSize: 13,
   },
   daysCard: {
-    backgroundColor: palette.bgCard,
-    borderRadius: radii.lg,
+    backgroundColor: palette.bgCardStrong,
+    borderRadius: radii.md,
     borderWidth: 1,
     borderColor: palette.border,
-    padding: spacing.lg,
+    padding: spacing.md,
   },
   daysRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: spacing.sm,
+    marginTop: spacing.xs,
   },
   patternRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.sm,
-    marginTop: spacing.sm,
+    marginTop: spacing.xs,
   },
   patternOption: {
     flex: 1,
@@ -332,11 +341,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'rgba(255,255,255,0.04)',
     borderWidth: 1,
-    borderColor: 'transparent',
+    borderColor: 'rgba(255,255,255,0.05)',
   },
   patternOptionSelected: {
-    backgroundColor: 'rgba(0, 240, 255, 0.1)',
-    borderColor: palette.cyan,
+    backgroundColor: 'rgba(41, 121, 255, 0.08)',
+    borderColor: palette.whoopBlue,
   },
   patternText: {
     color: palette.textMuted,
@@ -344,13 +353,13 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   patternTextSelected: {
-    color: palette.cyan,
+    color: palette.whoopBlue,
   },
   durationRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     gap: spacing.xs,
-    marginTop: spacing.sm,
+    marginTop: spacing.xs,
   },
   durationOption: {
     flex: 1,
@@ -360,11 +369,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'rgba(255,255,255,0.04)',
     borderWidth: 1,
-    borderColor: 'transparent',
+    borderColor: 'rgba(255,255,255,0.05)',
   },
   durationOptionSelected: {
-    backgroundColor: 'rgba(0, 240, 255, 0.1)',
-    borderColor: palette.cyan,
+    backgroundColor: 'rgba(41, 121, 255, 0.08)',
+    borderColor: palette.whoopBlue,
   },
   durationText: {
     color: palette.textMuted,
@@ -372,39 +381,66 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   durationTextSelected: {
-    color: palette.cyan,
+    color: palette.whoopBlue,
   },
   dayPill: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
   },
   dayPillSelected: {
-    backgroundColor: palette.cyan,
+    backgroundColor: palette.whoopBlue,
+    borderColor: palette.whoopBlue,
   },
   dayText: {
     color: palette.textMuted,
     fontWeight: '700',
+    fontSize: 13,
   },
   dayTextSelected: {
-    color: palette.bg,
+    color: '#000000',
   },
   payloadCard: {
-    backgroundColor: palette.bgCard,
-    borderRadius: radii.lg,
+    backgroundColor: '#08080C',
+    borderRadius: radii.md,
     borderWidth: 1,
     borderColor: palette.border,
-    padding: spacing.lg,
+    padding: spacing.md,
+  },
+  payloadHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: spacing.xs,
+  },
+  payloadTerminalDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: palette.whoopGreen,
+  },
+  payloadTitle: {
+    color: palette.textSoft,
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 1,
   },
   payloadText: {
-    color: palette.cyan,
+    color: palette.whoopGreen,
     fontFamily: 'monospace',
-    lineHeight: 22,
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: 4,
   },
   deleteButton: {
     marginTop: spacing.sm,
+    borderColor: 'rgba(255, 23, 68, 0.3)',
+    backgroundColor: 'rgba(255, 23, 68, 0.05)',
   },
 });
+

@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import {
   Alert,
@@ -19,11 +19,12 @@ import { useGreeting } from '../hooks/useGreeting';
 import { bleService } from '../services/bleService';
 import { useBLEStore } from '../store/useBLEStore';
 import { RootStackParamList } from '../types/navigation';
-import { getBatteryTone } from '../utils/format';
 import { showToast } from '../utils/toast';
 import { palette, radii, shadows, spacing } from '../utils/theme';
+import { formatTime12Hour } from '../utils/format';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
+type TabType = 'recovery' | 'sleep' | 'strain';
 
 export default function Home({ navigation }: Props) {
   const greeting = useGreeting();
@@ -34,10 +35,35 @@ export default function Home({ navigation }: Props) {
   const alarms = useBLEStore(state => state.alarms);
   const toggleAlarm = useBLEStore(state => state.toggleAlarm);
 
+  const [selectedTab, setSelectedTab] = useState<TabType>('recovery');
+  const [animatedVal, setAnimatedVal] = useState(0);
+
   const fabScale = useRef(new Animated.Value(1)).current;
+  const progressAnim = useRef(new Animated.Value(0)).current;
 
   const isConnected =
     connectionStatus === 'connected' || connectionStatus === 'syncing';
+
+  // Compute targets for Whoop Metrics
+  const targetPct =
+    selectedTab === 'recovery' ? 78 : selectedTab === 'sleep' ? 88 : 59; // 59% represents 12.4 out of 21 Day Strain
+
+  // Handle active value animation
+  useEffect(() => {
+    const listenerId = progressAnim.addListener(({ value }) => {
+      setAnimatedVal(value);
+    });
+    
+    Animated.timing(progressAnim, {
+      toValue: targetPct,
+      duration: 600,
+      useNativeDriver: false,
+    }).start();
+
+    return () => {
+      progressAnim.removeListener(listenerId);
+    };
+  }, [selectedTab, targetPct, progressAnim]);
 
   const handleDisconnect = () => {
     Alert.alert(
@@ -93,12 +119,55 @@ export default function Home({ navigation }: Props) {
     ]).start(() => navigation.navigate('AlarmSetup'));
   };
 
-  // Battery ring helpers
-  const batteryColor = getBatteryTone(batteryLevel);
-  const safeLevel = batteryLevel ?? 0;
-  const radius = 14;
-  const circ = radius * Math.PI * 2;
-  const dashOffset = circ - (safeLevel / 100) * circ;
+  const cycleTab = () => {
+    if (selectedTab === 'recovery') {
+      setSelectedTab('sleep');
+    } else if (selectedTab === 'sleep') {
+      setSelectedTab('strain');
+    } else {
+      setSelectedTab('recovery');
+    }
+  };
+
+  // Find next alarm
+  const nextAlarm = alarms
+    .filter(a => a.enabled)
+    .sort((a, b) => a.time.localeCompare(b.time))[0];
+  const nextAlarmTime = nextAlarm ? formatTime12Hour(nextAlarm.time) : 'None';
+
+  // Metric details
+  const metricDetails = {
+    recovery: {
+      color: palette.whoopGreen,
+      glowStyle: shadows.glowWhoopGreen,
+      value: '78%',
+      subtitle: 'RECOVERY',
+      stateText: 'HIGH',
+      textColor: palette.whoopGreen,
+    },
+    sleep: {
+      color: palette.whoopBlue,
+      glowStyle: shadows.glowWhoopBlue,
+      value: '88%',
+      subtitle: 'SLEEP PERFORMANCE',
+      stateText: 'OPTIMAL',
+      textColor: palette.whoopBlue,
+    },
+    strain: {
+      color: palette.whoopYellow,
+      glowStyle: shadows.glowWhoopYellow,
+      value: '12.4',
+      subtitle: 'DAY STRAIN',
+      stateText: 'MODERATE',
+      textColor: palette.whoopYellow,
+    },
+  }[selectedTab];
+
+  // Circle SVG Constants
+  const radius = 80;
+  const strokeWidth = 10;
+  const circ = 2 * Math.PI * radius; // ~502.65
+  const strokeDashoffset = circ - (animatedVal / 100) * circ;
 
   return (
     <GradientBackground>
@@ -106,10 +175,9 @@ export default function Home({ navigation }: Props) {
         {/* ── Header ── */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.kicker}>Wearable control</Text>
-            <Text style={styles.title}>{greeting.title}</Text>
+            <Text style={styles.kicker}>Smart Coach</Text>
+            <Text style={styles.title}>{greeting.title.split(',')[0] || 'Hello'}</Text>
           </View>
-          {/* Sync icon — only visible when connected */}
           {isConnected && (
             <Pressable
               id="sync-button"
@@ -118,19 +186,18 @@ export default function Home({ navigation }: Props) {
                 styles.syncIconBtn,
                 pressed && styles.pressed,
               ]}>
-              {/* Sync arrows icon */}
-              <Svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+              <Svg width="18" height="18" viewBox="0 0 24 24" fill="none">
                 <Path
                   d="M1 4v6h6M23 20v-6h-6"
-                  stroke={palette.cyan}
-                  strokeWidth="2"
+                  stroke={palette.whoopBlue}
+                  strokeWidth="2.2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 />
                 <Path
                   d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4-4.64 4.36A9 9 0 0 1 3.51 15"
-                  stroke={palette.cyan}
-                  strokeWidth="2"
+                  stroke={palette.whoopBlue}
+                  strokeWidth="2.2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 />
@@ -144,7 +211,189 @@ export default function Home({ navigation }: Props) {
           contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={false}>
 
-          {/* ── Connection hero card ── */}
+          {/* ── Whoop Interactive Selector ── */}
+          <View style={styles.tabBar}>
+            <Pressable
+              onPress={() => setSelectedTab('recovery')}
+              style={[
+                styles.tabBtn,
+                selectedTab === 'recovery' && styles.tabBtnActiveRecovery,
+              ]}>
+              <Text
+                style={[
+                  styles.tabText,
+                  selectedTab === 'recovery'
+                    ? styles.tabTextActiveRecovery
+                    : styles.tabTextInactive,
+                ]}>
+                Recovery
+              </Text>
+            </Pressable>
+
+            <Pressable
+              onPress={() => setSelectedTab('sleep')}
+              style={[
+                styles.tabBtn,
+                selectedTab === 'sleep' && styles.tabBtnActiveSleep,
+              ]}>
+              <Text
+                style={[
+                  styles.tabText,
+                  selectedTab === 'sleep'
+                    ? styles.tabTextActiveSleep
+                    : styles.tabTextInactive,
+                ]}>
+                Sleep
+              </Text>
+            </Pressable>
+
+            <Pressable
+              onPress={() => setSelectedTab('strain')}
+              style={[
+                styles.tabBtn,
+                selectedTab === 'strain' && styles.tabBtnActiveStrain,
+              ]}>
+              <Text
+                style={[
+                  styles.tabText,
+                  selectedTab === 'strain'
+                    ? styles.tabTextActiveStrain
+                    : styles.tabTextInactive,
+                ]}>
+                Strain
+              </Text>
+            </Pressable>
+          </View>
+
+          {/* ── Circular Progress Ring ── */}
+          <View style={styles.dialContainer}>
+            <Pressable onPress={cycleTab} style={[styles.dialGlowWrapper, metricDetails.glowStyle]}>
+              <Svg width="200" height="200" viewBox="0 0 200 200">
+                {/* Track Circle */}
+                <Circle
+                  cx="100"
+                  cy="100"
+                  r={radius}
+                  stroke="rgba(255, 255, 255, 0.05)"
+                  strokeWidth={strokeWidth}
+                  fill="none"
+                />
+                {/* Progress Circle */}
+                <Circle
+                  cx="100"
+                  cy="100"
+                  r={radius}
+                  stroke={metricDetails.color}
+                  strokeWidth={strokeWidth}
+                  strokeDasharray={`${circ} ${circ}`}
+                  strokeDashoffset={strokeDashoffset}
+                  strokeLinecap="round"
+                  fill="none"
+                  transform="rotate(-90 100 100)"
+                />
+              </Svg>
+              {/* Inner Information Panel */}
+              <View style={styles.dialInner}>
+                <Text style={styles.dialSub}>{metricDetails.subtitle}</Text>
+                <Text style={styles.dialVal}>{metricDetails.value}</Text>
+                <Text style={[styles.dialState, { color: metricDetails.textColor }]}>
+                  {metricDetails.stateText}
+                </Text>
+              </View>
+            </Pressable>
+          </View>
+
+          {/* ── Telemetry Grid ── */}
+          <View style={styles.grid}>
+            <View style={styles.gridRow}>
+              {/* Card 1: HRV & RHR */}
+              <View style={styles.telemetryCard}>
+                <Text style={styles.cardHeader}>HRV & RHR</Text>
+                <View style={styles.cardRow}>
+                  <View style={styles.cardCol}>
+                    <Text style={styles.cardValText}>
+                      72<Text style={styles.cardUnit}> ms</Text>
+                    </Text>
+                    <Text style={styles.cardLabel}>HRV</Text>
+                  </View>
+                  <View style={styles.cardDivider} />
+                  <View style={styles.cardCol}>
+                    <Text style={styles.cardValText}>
+                      54<Text style={styles.cardUnit}> bpm</Text>
+                    </Text>
+                    <Text style={styles.cardLabel}>Resting HR</Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Card 2: Sleep Tracker */}
+              <View style={styles.telemetryCard}>
+                <Text style={styles.cardHeader}>SLEEP ANALYSIS</Text>
+                <View style={styles.cardRow}>
+                  <View style={styles.cardCol}>
+                    <Text style={styles.cardValText}>
+                      7.5<Text style={styles.cardUnit}> h</Text>
+                    </Text>
+                    <Text style={styles.cardLabel}>Achieved</Text>
+                  </View>
+                  <View style={styles.cardDivider} />
+                  <View style={styles.cardCol}>
+                    <Text style={styles.cardValText}>
+                      8.2<Text style={styles.cardUnit}> h</Text>
+                    </Text>
+                    <Text style={styles.cardLabel}>Target</Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+
+            <View style={styles.gridRow}>
+              {/* Card 3: Band Connection & Battery */}
+              <View style={styles.telemetryCard}>
+                <Text style={styles.cardHeader}>DEVICE STATUS</Text>
+                <View style={styles.cardRow}>
+                  <View style={styles.cardCol}>
+                    <Text style={styles.cardValText}>
+                      {batteryLevel !== null ? `${batteryLevel}%` : '—'}
+                    </Text>
+                    <Text style={styles.cardLabel}>Battery</Text>
+                  </View>
+                  <View style={styles.cardDivider} />
+                  <View style={styles.cardCol}>
+                    <View style={styles.liveStatusRow}>
+                      <View
+                        style={[
+                          styles.liveIndicatorDot,
+                          {
+                            backgroundColor: isConnected
+                              ? palette.whoopGreen
+                              : palette.textSoft,
+                          },
+                        ]}
+                      />
+                      <Text style={styles.cardValTextLive}>
+                        {isConnected ? 'LIVE' : 'LINK'}
+                      </Text>
+                    </View>
+                    <Text style={styles.cardLabel}>Connection</Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Card 4: Next Wake-up Alarm */}
+              <View style={styles.telemetryCard}>
+                <Text style={styles.cardHeader}>NEXT WAKE-UP</Text>
+                <View style={styles.cardSingleCol}>
+                  <Text style={styles.cardValTextAlarm} numberOfLines={1}>
+                    {nextAlarmTime}
+                  </Text>
+                  <Text style={styles.cardLabel}>Scheduled Alarm</Text>
+                </View>
+              </View>
+            </View>
+          </View>
+
+          {/* ── Connection Management Panel ── */}
           <ConnectionStatusCard
             status={connectionStatus}
             device={connectedDevice}
@@ -153,113 +402,11 @@ export default function Home({ navigation }: Props) {
             onDisconnect={handleDisconnect}
           />
 
-          {/* ── Stats strip — shows only when connected ── */}
-          {isConnected && (
-            <View style={styles.statsStrip}>
-              {/* Battery mini-ring */}
-              <View style={styles.statItem}>
-                <View style={styles.miniRingWrap}>
-                  <Svg width="36" height="36" viewBox="0 0 36 36" fill="none">
-                    <Circle
-                      cx="18"
-                      cy="18"
-                      r={radius}
-                      stroke="rgba(255,255,255,0.08)"
-                      strokeWidth="5"
-                    />
-                    <Circle
-                      cx="18"
-                      cy="18"
-                      r={radius}
-                      stroke={batteryColor}
-                      strokeWidth="5"
-                      strokeDasharray={`${circ} ${circ}`}
-                      strokeDashoffset={dashOffset}
-                      strokeLinecap="round"
-                      transform="rotate(-90 18 18)"
-                    />
-                  </Svg>
-                  <Text style={[styles.miniRingLabel, { color: batteryColor }]}>
-                    {batteryLevel == null ? '–' : batteryLevel}
-                  </Text>
-                </View>
-                <View>
-                  <Text style={styles.statKey}>Battery</Text>
-                  <Text style={styles.statVal}>
-                    {batteryLevel == null ? 'Unknown' : `${batteryLevel}%`}
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.statDivider} />
-
-              {/* Device name */}
-              <View style={styles.statItem}>
-                <View style={styles.deviceIcon}>
-                  <Svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                    <Path
-                      d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"
-                      stroke={palette.blue}
-                      strokeWidth="1.8"
-                    />
-                    <Path
-                      d="M8 12h8M12 8v8"
-                      stroke={palette.blue}
-                      strokeWidth="1.8"
-                      strokeLinecap="round"
-                    />
-                  </Svg>
-                </View>
-                <View style={styles.statTextBlock}>
-                  <Text style={styles.statKey}>Device</Text>
-                  <Text style={styles.statVal} numberOfLines={1}>
-                    {connectedDevice?.name ||
-                      connectedDevice?.localName ||
-                      'Band'}
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.statDivider} />
-
-              {/* Last sync */}
-              <View style={styles.statItem}>
-                <View style={[styles.deviceIcon, { backgroundColor: 'rgba(74, 222, 128, 0.1)' }]}>
-                  <Svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                    <Path
-                      d="M12 8v4l3 3"
-                      stroke={palette.green}
-                      strokeWidth="1.8"
-                      strokeLinecap="round"
-                    />
-                    <Circle
-                      cx="12"
-                      cy="12"
-                      r="9"
-                      stroke={palette.green}
-                      strokeWidth="1.8"
-                    />
-                  </Svg>
-                </View>
-                <View style={styles.statTextBlock}>
-                  <Text style={styles.statKey}>Last sync</Text>
-                  <Text style={styles.statVal}>
-                    {lastSyncedAt ?? '—'}
-                  </Text>
-                </View>
-              </View>
-            </View>
-          )}
-
-          {/* ── Alarms section ── */}
+          {/* ── Sleep Coach & Alarms Header ── */}
           <View style={styles.sectionHeader}>
             <View>
-              <Text style={styles.sectionKicker}>Haptic alarms</Text>
-              <Text style={styles.sectionTitle}>
-                {alarms.length === 0
-                  ? 'No alarms yet'
-                  : `${alarms.length} alarm${alarms.length !== 1 ? 's' : ''}`}
-              </Text>
+              <Text style={styles.sectionKicker}>Sleep Coach</Text>
+              <Text style={styles.sectionTitle}>Haptic Alarms</Text>
             </View>
             <View style={styles.alarmCount}>
               <Text style={styles.alarmCountText}>
@@ -268,9 +415,10 @@ export default function Home({ navigation }: Props) {
             </View>
           </View>
 
+          {/* ── Alarm List ── */}
           {alarms.length === 0 ? (
             <View style={styles.emptyState}>
-              <Svg width="48" height="48" viewBox="0 0 24 24" fill="none">
+              <Svg width="40" height="40" viewBox="0 0 24 24" fill="none">
                 <Path
                   d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"
                   stroke={palette.textSoft}
@@ -282,8 +430,8 @@ export default function Home({ navigation }: Props) {
               <Text style={styles.emptyTitle}>No haptic alarms</Text>
               <Text style={styles.emptyBody}>
                 Tap the{' '}
-                <Text style={{ color: palette.cyan }}>+</Text>
-                {' '}button to create your first alarm and sync it to your wearable.
+                <Text style={{ color: palette.whoopBlue }}>+</Text>
+                {' '}button below to configure a wake-up time.
               </Text>
             </View>
           ) : (
@@ -301,8 +449,8 @@ export default function Home({ navigation }: Props) {
             ))
           )}
 
-          {/* Bottom padding for FAB */}
-          <View style={{ height: 96 }} />
+          {/* Bottom spacing for FAB */}
+          <View style={styles.bottomSpacing} />
         </ScrollView>
 
         {/* ── Floating Action Button ── */}
@@ -315,8 +463,8 @@ export default function Home({ navigation }: Props) {
             <Svg width="26" height="26" viewBox="0 0 24 24" fill="none">
               <Path
                 d="M12 5v14M5 12h14"
-                stroke={palette.bg}
-                strokeWidth="2.4"
+                stroke="#000000"
+                strokeWidth="2.5"
                 strokeLinecap="round"
               />
             </Svg>
@@ -333,41 +481,42 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: spacing.xl,
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.md,
+    paddingTop: spacing.xs,
+    paddingBottom: spacing.sm,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-end',
   },
   kicker: {
-    color: palette.cyan,
+    color: palette.textSoft,
     fontSize: 11,
-    letterSpacing: 1.4,
+    letterSpacing: 1.5,
     textTransform: 'uppercase',
     marginBottom: 4,
   },
   title: {
     color: palette.text,
     fontSize: 26,
-    fontWeight: '700',
+    fontWeight: '800',
     lineHeight: 32,
+    letterSpacing: -0.5,
   },
   syncIconBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: 'rgba(99,243,255,0.08)',
+    backgroundColor: 'rgba(41,121,255,0.08)',
     borderRadius: radii.pill,
     borderWidth: 1,
-    borderColor: 'rgba(99,243,255,0.2)',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    borderColor: 'rgba(41,121,255,0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
   },
   syncLabel: {
-    color: palette.cyan,
-    fontSize: 13,
+    color: palette.whoopBlue,
+    fontSize: 12,
     fontWeight: '700',
-    letterSpacing: 0.4,
+    letterSpacing: 0.5,
   },
   pressed: {
     opacity: 0.75,
@@ -377,70 +526,183 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xl,
   },
 
-  // Stats strip
-  statsStrip: {
-    marginTop: spacing.md,
-    backgroundColor: palette.bgCard,
-    borderRadius: radii.lg,
+  // Tab Bar
+  tabBar: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderRadius: radii.pill,
+    padding: 3,
+    marginTop: spacing.sm,
+    marginBottom: spacing.md,
     borderWidth: 1,
-    borderColor: palette.border,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
-    ...shadows.card,
+    borderColor: 'rgba(255,255,255,0.05)',
   },
-  statItem: {
+  tabBtn: {
     flex: 1,
-    flexDirection: 'row',
+    paddingVertical: 10,
     alignItems: 'center',
-    gap: 10,
+    borderRadius: radii.pill,
+    borderWidth: 1,
+    borderColor: 'transparent',
   },
-  statDivider: {
-    width: 1,
-    height: 36,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    marginHorizontal: spacing.sm,
+  tabBtnActiveRecovery: {
+    backgroundColor: 'rgba(0, 230, 118, 0.08)',
+    borderColor: 'rgba(0, 230, 118, 0.3)',
   },
-  miniRingWrap: {
-    width: 36,
-    height: 36,
-    justifyContent: 'center',
-    alignItems: 'center',
+  tabBtnActiveSleep: {
+    backgroundColor: 'rgba(41, 121, 255, 0.08)',
+    borderColor: 'rgba(41, 121, 255, 0.3)',
   },
-  miniRingLabel: {
-    position: 'absolute',
-    fontSize: 9,
-    fontWeight: '700',
+  tabBtnActiveStrain: {
+    backgroundColor: 'rgba(255, 171, 0, 0.08)',
+    borderColor: 'rgba(255, 171, 0, 0.3)',
   },
-  deviceIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(94,140,255,0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  statTextBlock: {
-    flex: 1,
-  },
-  statKey: {
-    color: palette.textSoft,
-    fontSize: 10,
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
-    marginBottom: 2,
-  },
-  statVal: {
-    color: palette.text,
+  tabText: {
     fontSize: 13,
     fontWeight: '700',
   },
+  tabTextActiveRecovery: {
+    color: palette.whoopGreen,
+  },
+  tabTextActiveSleep: {
+    color: palette.whoopBlue,
+  },
+  tabTextActiveStrain: {
+    color: palette.whoopYellow,
+  },
+  tabTextInactive: {
+    color: palette.textMuted,
+  },
 
-  // Section header
+  // Dial Container
+  dialContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: spacing.md,
+  },
+  dialGlowWrapper: {
+    width: 200,
+    height: 200,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 100,
+  },
+  dialInner: {
+    position: 'absolute',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    backgroundColor: '#050505',
+  },
+  dialSub: {
+    color: palette.textSoft,
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 1.2,
+    marginBottom: 4,
+    textTransform: 'uppercase',
+  },
+  dialVal: {
+    color: palette.text,
+    fontSize: 40,
+    fontWeight: '900',
+    letterSpacing: -1,
+  },
+  dialState: {
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 1,
+    marginTop: 6,
+    textTransform: 'uppercase',
+  },
+
+  // Telemetry Grid
+  grid: {
+    gap: spacing.sm,
+    marginTop: spacing.xs,
+    marginBottom: spacing.xs,
+  },
+  gridRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  telemetryCard: {
+    flex: 1,
+    backgroundColor: palette.bgCardStrong,
+    borderWidth: 1,
+    borderColor: palette.border,
+    borderRadius: radii.md,
+    padding: spacing.md,
+  },
+  cardHeader: {
+    color: palette.textSoft,
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 1,
+    marginBottom: spacing.sm,
+    textTransform: 'uppercase',
+  },
+  cardRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  cardCol: {
+    flex: 1,
+  },
+  cardSingleCol: {
+    justifyContent: 'center',
+  },
+  cardDivider: {
+    width: 1,
+    height: 26,
+    backgroundColor: palette.border,
+    marginHorizontal: spacing.xs,
+  },
+  cardValText: {
+    color: palette.text,
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  cardValTextAlarm: {
+    color: palette.text,
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  cardValTextLive: {
+    color: palette.text,
+    fontSize: 15,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  cardUnit: {
+    color: palette.textMuted,
+    fontSize: 11,
+    fontWeight: '500',
+  },
+  cardLabel: {
+    color: palette.textMuted,
+    fontSize: 10,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  liveStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  liveIndicatorDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+  },
+
+  // Section Header
   sectionHeader: {
-    marginTop: spacing.xxl,
-    marginBottom: spacing.lg,
+    marginTop: spacing.xl,
+    marginBottom: spacing.md,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-end',
@@ -448,68 +710,78 @@ const styles = StyleSheet.create({
   sectionKicker: {
     color: palette.textSoft,
     textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    fontSize: 11,
+    letterSpacing: 1,
+    fontSize: 10,
+    fontWeight: '700',
     marginBottom: 4,
   },
   sectionTitle: {
     color: palette.text,
     fontSize: 22,
-    fontWeight: '700',
+    fontWeight: '800',
+    letterSpacing: -0.5,
   },
   alarmCount: {
-    backgroundColor: 'rgba(74, 222, 128, 0.08)',
+    backgroundColor: 'rgba(0, 230, 118, 0.08)',
     borderRadius: radii.pill,
     borderWidth: 1,
-    borderColor: 'rgba(74, 222, 128, 0.2)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    borderColor: 'rgba(0, 230, 118, 0.2)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
   },
   alarmCountText: {
-    color: palette.green,
-    fontSize: 12,
+    color: palette.whoopGreen,
+    fontSize: 11,
     fontWeight: '700',
-    letterSpacing: 0.4,
+    letterSpacing: 0.5,
   },
 
-  // Empty state
+  // Empty State
   emptyState: {
     alignItems: 'center',
-    paddingVertical: 48,
+    paddingVertical: 36,
     paddingHorizontal: spacing.xl,
-    gap: spacing.md,
+    gap: spacing.sm,
+    backgroundColor: palette.bgCardStrong,
+    borderWidth: 1,
+    borderColor: palette.border,
+    borderRadius: radii.md,
   },
   emptyTitle: {
     color: palette.textMuted,
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '700',
-    marginTop: spacing.sm,
+    marginTop: 4,
   },
   emptyBody: {
     color: palette.textSoft,
-    fontSize: 14,
-    lineHeight: 22,
+    fontSize: 13,
+    lineHeight: 18,
     textAlign: 'center',
   },
 
   // FAB
   fabWrap: {
     position: 'absolute',
-    bottom: 32,
-    right: 28,
+    bottom: 24,
+    right: 20,
     ...shadows.glow,
   },
   fab: {
-    width: 62,
-    height: 62,
-    borderRadius: 31,
-    backgroundColor: palette.cyan,
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    backgroundColor: palette.whoopBlue,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: palette.cyan,
+    shadowColor: palette.whoopBlue,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.55,
     shadowRadius: 20,
     elevation: 12,
   },
+  bottomSpacing: {
+    height: 100,
+  },
 });
+

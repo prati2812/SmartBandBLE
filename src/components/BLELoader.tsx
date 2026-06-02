@@ -100,8 +100,8 @@ const styles = StyleSheet.create({
   ring: {
     position: 'absolute',
     borderWidth: 1.5,
-    borderColor: 'rgba(99, 243, 255, 0.45)',
-    backgroundColor: 'rgba(99, 243, 255, 0.04)',
+    borderColor: 'rgba(0, 119, 255, 0.45)',
+    backgroundColor: 'rgba(0, 119, 255, 0.04)',
   },
   core: {
     justifyContent: 'center',
