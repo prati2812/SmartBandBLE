@@ -43,7 +43,7 @@ export const radii = {
 
 export const shadows = {
   glow: {
-    shadowColor: palette.cyan,
+    shadowColor: '#2979FF',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.22,
     shadowRadius: 18,

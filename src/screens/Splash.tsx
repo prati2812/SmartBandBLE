@@ -55,7 +55,7 @@ export default function Splash({ navigation }: Props) {
 
             <Path
               d="M64 16 A48 48 0 1 1 64 112"
-              stroke={palette.cyan}
+              stroke={palette.whoopBlue}
               strokeWidth="10"
               strokeLinecap="round"
               fill="none"
@@ -66,7 +66,7 @@ export default function Splash({ navigation }: Props) {
               cy="64"
               r="18"
               fill={palette.bgElevated}
-              stroke={palette.cyan}
+              stroke={palette.whoopBlue}
               strokeWidth="3"
             />
           </Svg>

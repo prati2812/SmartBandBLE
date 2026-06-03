@@ -16,7 +16,7 @@ interface ConnectionStatusCardProps {
 
 const statusMap: Record<ConnectionStatus, { label: string; color: string }> = {
   idle: { label: 'Disconnected', color: palette.textMuted },
-  scanning: { label: 'Scanning...', color: palette.cyan },
+  scanning: { label: 'Scanning...', color: palette.whoopBlue },
   connecting: { label: 'Connecting...', color: palette.amber },
   connected: { label: 'Connected', color: palette.whoopGreen },
   syncing: { label: 'Syncing...', color: palette.whoopBlue },
@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
     minWidth: 90,
   },
   connectBtn: {
-    backgroundColor: palette.cyan,
+    backgroundColor: palette.whoopBlue,
   },
   disconnectBtn: {
     backgroundColor: 'rgba(255, 23, 68, 0.1)',

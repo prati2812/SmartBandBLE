@@ -74,7 +74,7 @@ export const getSignalTone = (rssi?: number | null) => {
   }
 
   if (rssi >= -58) {
-    return { label: 'Excellent', color: palette.cyan };
+    return { label: 'Excellent', color: palette.whoopBlue };
   }
 
   if (rssi >= -68) {
@@ -94,7 +94,7 @@ export const getBatteryTone = (value: number | null) => {
   }
 
   if (value >= 65) {
-    return palette.cyan;
+    return palette.whoopGreen;
   }
 
   if (value >= 30) {
