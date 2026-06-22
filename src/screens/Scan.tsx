@@ -6,11 +6,12 @@ import {
   Pressable,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Device } from 'react-native-ble-plx';
-import Svg, { Path } from 'react-native-svg';
+import Svg, { Circle, Path } from 'react-native-svg';
 
 import BLELoader from '../components/BLELoader';
 import DeviceCard from '../components/DeviceCard';
@@ -25,6 +26,9 @@ import { palette, radii, spacing } from '../utils/theme';
 type Props = NativeStackScreenProps<RootStackParamList, 'Scan'>;
 
 export default function Scan({ navigation }: Props) {
+  const { width } = useWindowDimensions();
+  const isSmall = width < 360;
+
   const devices = useBLEStore(state => state.scannedDevices);
   const connectedDevice = useBLEStore(state => state.connectedDevice);
   const { isScanning, startScan, stopScan } = useBleScan();
@@ -32,9 +36,7 @@ export default function Scan({ navigation }: Props) {
 
   useEffect(() => {
     startScan();
-    return () => {
-      stopScan();
-    };
+    return () => { stopScan(); };
   }, [startScan, stopScan]);
 
   const handleConnect = async (device: Device) => {
@@ -47,9 +49,11 @@ export default function Scan({ navigation }: Props) {
       navigation.goBack();
       return;
     }
-
     showToast(result.error || 'Unable to connect to wearable');
   };
+
+  const loaderSize = isSmall ? 110 : 148;
+  const hPad = isSmall ? spacing.md : spacing.xl;
 
   return (
     <GradientBackground>
@@ -58,46 +62,105 @@ export default function Scan({ navigation }: Props) {
           style={styles.list}
           data={devices}
           keyExtractor={item => item.id}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, { paddingHorizontal: hPad }]}
           showsVerticalScrollIndicator={false}
           ListHeaderComponent={
             <>
+              {/* ── Header ── */}
               <View style={styles.header}>
                 <Pressable onPress={() => navigation.goBack()} style={styles.backButton}>
-                  <Svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                    <Path d="M15 18L9 12L15 6" stroke={palette.text} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                  <Svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                    <Path
+                      d="M15 18L9 12L15 6"
+                      stroke={palette.text}
+                      strokeWidth="2.2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
                   </Svg>
                 </Pressable>
 
                 <View style={styles.headerCopy}>
-                  <Text style={styles.headerKicker}>Bluetooth Low Energy</Text>
-                  <Text style={styles.headerTitle}>Scan nearby smart bands</Text>
+                  <Text style={[styles.headerKicker, isSmall && styles.textShrink]}>
+                    Bluetooth Low Energy
+                  </Text>
+                  <Text style={[styles.headerTitle, isSmall && styles.headerTitleSmall]}>
+                    Nearby Devices
+                  </Text>
+                </View>
+
+                {/* Scanning pulse indicator */}
+                <View style={styles.scanIndicator}>
+                  <View style={[
+                    styles.scanDot,
+                    { backgroundColor: isScanning ? palette.whoopGreen : palette.textSoft },
+                  ]} />
+                  <Text style={[styles.scanLabel, isSmall && styles.textShrink]}>
+                    {isScanning ? 'Live' : 'Paused'}
+                  </Text>
                 </View>
               </View>
 
-              <View style={styles.heroCard}>
-                <BLELoader size={172} isScanning={isScanning} />
-                <Text style={styles.heroTitle}>
-                  {isScanning ? 'Searching for wearable devices' : 'Scan paused'}
-                </Text>
-                <Text style={styles.heroSubtitle}>
-                  Keep your smart band close to the phone while we scan and resolve writable BLE services.
-                </Text>
-              </View>
+              {/* ── Hero Radar Card ── */}
+              <View style={[styles.heroCard, isSmall && styles.heroCardSmall]}>
+                <BLELoader size={loaderSize} isScanning={isScanning} />
 
-              <View style={styles.listHeader}>
-                <View>
-                  <Text style={styles.listKicker}>Nearby devices</Text>
-                  <Text style={styles.listTitle}>{devices.length} found</Text>
+                <View style={styles.heroTextBlock}>
+                  <Text style={[styles.heroTitle, isSmall && styles.heroTitleSmall]}>
+                    {isScanning ? 'Scanning for wearables' : 'Scan paused'}
+                  </Text>
+                  <Text style={[styles.heroSubtitle, isSmall && styles.heroSubtitleSmall]}>
+                    {isScanning
+                      ? 'Keep your band close and powered on.'
+                      : 'Tap the button below to resume.'}
+                  </Text>
+                </View>
+
+                {/* Stats row */}
+                <View style={styles.statsRow}>
+                  <StatPill label="Found" value={`${devices.length}`} />
+                  <View style={styles.statsDivider} />
+                  <StatPill label="Status" value={isScanning ? 'Active' : 'Idle'} highlight={isScanning} />
+                  <View style={styles.statsDivider} />
+                  <StatPill label="Protocol" value="BLE 5.0" />
                 </View>
               </View>
+
+              {/* ── List header ── */}
+              {devices.length > 0 && (
+                <View style={styles.listHeader}>
+                  <View style={styles.listHeaderLeft}>
+                    <View style={styles.listHeaderDot} />
+                    <Text style={[styles.listKicker, isSmall && styles.textShrink]}>
+                      Discovered wearables
+                    </Text>
+                  </View>
+                  <View style={styles.countBadge}>
+                    <Text style={styles.countText}>{devices.length}</Text>
+                  </View>
+                </View>
+              )}
             </>
           }
           ListEmptyComponent={
             <View style={styles.emptyCard}>
-              <Text style={styles.emptyTitle}>No wearables discovered yet</Text>
-              <Text style={styles.emptyText}>
-                Keep scanning for a few seconds and make sure the band is powered on, nearby, and advertising over BLE.
+              {/* Idle icon */}
+              <View style={styles.emptyIconWrap}>
+                <Svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+                  <Circle cx="12" cy="12" r="9" stroke={palette.textSoft} strokeWidth="1.5" />
+                  <Path
+                    d="M8 12h8M12 8v8"
+                    stroke={palette.textSoft}
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                  />
+                </Svg>
+              </View>
+              <Text style={[styles.emptyTitle, isSmall && styles.emptyTitleSmall]}>
+                No wearables found yet
+              </Text>
+              <Text style={[styles.emptyText, isSmall && styles.textShrink]}>
+                Make sure your band is powered on, in range, and advertising over BLE. It usually takes a few seconds.
               </Text>
             </View>
           }
@@ -111,32 +174,56 @@ export default function Scan({ navigation }: Props) {
           )}
         />
 
+        {/* ── Floating Action Button ── */}
         <Pressable
           onPress={isScanning ? stopScan : startScan}
-          style={[styles.fab, isScanning ? styles.fabStop : styles.fabStart]}>
-          <Svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+          style={({ pressed }) => [
+            styles.fab,
+            isScanning ? styles.fabStop : styles.fabStart,
+            pressed && styles.fabPressed,
+          ]}>
+          <Svg width="22" height="22" viewBox="0 0 24 24" fill="none">
             {isScanning ? (
-              <Path d="M7 7H17V17H7V7Z" fill={palette.bg} />
+              <Path
+                d="M6 6h12v12H6z"
+                fill={palette.bg}
+              />
             ) : (
               <Path
-                d="M12 2V22M12 2L17 7L7 17M7 7L17 17L12 22"
-                stroke={palette.bg}
-                strokeWidth="2.4"
+                d="M5 3l14 9-14 9V3z"
+                fill={palette.bg}
                 strokeLinecap="round"
                 strokeLinejoin="round"
               />
             )}
           </Svg>
+          <Text style={styles.fabLabel}>
+            {isScanning ? 'Stop' : 'Scan'}
+          </Text>
         </Pressable>
 
+        {/* ── Connecting Modal ── */}
         <Modal visible={!!activeDevice} transparent animationType="fade">
           <View style={styles.modalOverlay}>
             <View style={styles.modalCard}>
-              <BLELoader size={132} isScanning />
-              <Text style={styles.modalTitle}>Connecting securely</Text>
-              <Text style={styles.modalSubtitle}>
-                Linking to {activeDevice?.name || activeDevice?.localName || 'wearable'} and discovering writable services.
+              <BLELoader size={isSmall ? 96 : 120} isScanning />
+
+              <Text style={[styles.modalTitle, isSmall && styles.modalTitleSmall]}>
+                Connecting…
               </Text>
+              <Text style={[styles.modalDevice, isSmall && styles.textShrink]}>
+                {activeDevice?.name || activeDevice?.localName || 'Wearable'}
+              </Text>
+              <Text style={[styles.modalSubtitle, isSmall && styles.textShrink]}>
+                Discovering writable BLE services and establishing a secure link.
+              </Text>
+
+              {/* Progress dots */}
+              <View style={styles.dotsRow}>
+                {[0, 1, 2].map(i => (
+                  <View key={i} style={styles.dot} />
+                ))}
+              </View>
             </View>
           </View>
         </Modal>
@@ -145,152 +232,309 @@ export default function Scan({ navigation }: Props) {
   );
 }
 
+/* ── Small helper ── */
+function StatPill({ label, value, highlight = false }: { label: string; value: string; highlight?: boolean }) {
+  return (
+    <View style={statStyles.pill}>
+      <Text style={statStyles.label}>{label}</Text>
+      <Text style={[statStyles.value, highlight && statStyles.valueHighlight]}>{value}</Text>
+    </View>
+  );
+}
+
+const statStyles = StyleSheet.create({
+  pill: { flex: 1, alignItems: 'center' },
+  label: { color: palette.textSoft, fontSize: 10, fontWeight: '600', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 3 },
+  value: { color: palette.text, fontSize: 14, fontWeight: '700' },
+  valueHighlight: { color: palette.whoopGreen },
+});
+
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-  },
-  list: {
-    flex: 1,
-  },
+  safeArea: { flex: 1 },
+  list: { flex: 1 },
   listContent: {
-    paddingHorizontal: spacing.xl,
     paddingTop: spacing.sm,
     paddingBottom: 120,
   },
+
+  /* Header */
   header: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
+    marginBottom: spacing.md,
   },
   backButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgba(255,255,255,0.05)',
-    marginRight: spacing.md,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    marginRight: spacing.sm,
+    flexShrink: 0,
   },
-  headerCopy: {
-    flex: 1,
-    paddingTop: 2,
-  },
+  headerCopy: { flex: 1 },
   headerKicker: {
     color: palette.textSoft,
     textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    fontSize: 12,
+    letterSpacing: 1,
+    fontSize: 10,
+    fontWeight: '700',
   },
   headerTitle: {
     color: palette.text,
-    fontSize: 24,
-    fontWeight: '700',
-    lineHeight: 32,
-    marginTop: 4,
+    fontSize: 22,
+    fontWeight: '800',
+    letterSpacing: -0.5,
+    marginTop: 2,
   },
+  headerTitleSmall: {
+    fontSize: 18,
+  },
+  scanIndicator: {
+    alignItems: 'center',
+    gap: 4,
+    flexShrink: 0,
+    marginLeft: spacing.sm,
+  },
+  scanDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  scanLabel: {
+    color: palette.textSoft,
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.8,
+  },
+
+  /* Hero Card */
   heroCard: {
-    marginTop: spacing.lg,
-    backgroundColor: palette.bgCard,
+    backgroundColor: palette.bgCardStrong,
     borderRadius: radii.xl,
     borderWidth: 1,
-    borderColor: palette.borderStrong,
+    borderColor: palette.border,
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.xl,
-    paddingBottom: spacing.xl + spacing.sm,
+    paddingBottom: spacing.lg,
+    alignItems: 'center',
+    marginBottom: spacing.md,
+    gap: spacing.md,
+  },
+  heroCardSmall: {
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.md,
+    gap: spacing.sm,
+  },
+  heroTextBlock: {
     alignItems: 'center',
   },
   heroTitle: {
-    marginTop: spacing.lg,
     color: palette.text,
-    fontSize: 24,
+    fontSize: 18,
     fontWeight: '700',
-    lineHeight: 32,
+    letterSpacing: -0.3,
     textAlign: 'center',
+  },
+  heroTitleSmall: {
+    fontSize: 15,
   },
   heroSubtitle: {
-    marginTop: spacing.sm,
+    marginTop: 4,
     color: palette.textMuted,
     textAlign: 'center',
-    lineHeight: 22,
-    maxWidth: 300,
+    lineHeight: 20,
+    fontSize: 13,
+    maxWidth: 260,
   },
+  heroSubtitleSmall: {
+    fontSize: 12,
+    lineHeight: 18,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
+    paddingTop: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.06)',
+  },
+  statsDivider: {
+    width: 1,
+    height: 28,
+    backgroundColor: 'rgba(255,255,255,0.07)',
+  },
+
+  /* List header */
   listHeader: {
-    marginTop: spacing.xl,
-    marginBottom: spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.sm,
+    marginTop: spacing.xs,
+  },
+  listHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  listHeaderDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: palette.whoopGreen,
   },
   listKicker: {
     color: palette.textSoft,
     textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    fontSize: 12,
-  },
-  listTitle: {
-    color: palette.text,
-    fontSize: 28,
+    letterSpacing: 1,
+    fontSize: 10,
     fontWeight: '700',
-    lineHeight: 34,
-    marginTop: 4,
   },
+  countBadge: {
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderRadius: radii.pill,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  countText: {
+    color: palette.text,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+
+  /* Empty state */
   emptyCard: {
-    backgroundColor: palette.bgCard,
+    backgroundColor: palette.bgCardStrong,
     borderRadius: radii.lg,
     borderWidth: 1,
     borderColor: palette.border,
     padding: spacing.xl,
+    alignItems: 'center',
+  },
+  emptyIconWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.md,
   },
   emptyTitle: {
     color: palette.text,
-    fontSize: 20,
+    fontSize: 17,
     fontWeight: '700',
-    lineHeight: 28,
+    letterSpacing: -0.2,
     marginBottom: spacing.sm,
+    textAlign: 'center',
+  },
+  emptyTitleSmall: {
+    fontSize: 15,
   },
   emptyText: {
     color: palette.textMuted,
-    lineHeight: 22,
+    lineHeight: 20,
+    fontSize: 13,
+    textAlign: 'center',
   },
+
+  /* FAB */
   fab: {
     position: 'absolute',
     right: spacing.xl,
     bottom: spacing.xl,
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    justifyContent: 'center',
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 22,
+    paddingVertical: 14,
+    borderRadius: radii.pill,
   },
   fabStart: {
-    backgroundColor: palette.cyan,
+    backgroundColor: palette.whoopBlue,
   },
   fabStop: {
     backgroundColor: palette.amber,
   },
+  fabPressed: {
+    opacity: 0.85,
+    transform: [{ scale: 0.97 }],
+  },
+  fabLabel: {
+    color: palette.bg,
+    fontSize: 14,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+  },
+
+  /* Connecting Modal */
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(2, 6, 23, 0.68)',
+    backgroundColor: 'rgba(0,0,0,0.72)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: spacing.xl,
   },
   modalCard: {
     width: '100%',
-    backgroundColor: palette.bgElevated,
+    backgroundColor: '#111113',
     borderRadius: radii.xl,
     borderWidth: 1,
-    borderColor: palette.borderStrong,
-    padding: spacing.xl,
+    borderColor: 'rgba(255,255,255,0.10)',
+    paddingVertical: spacing.xl,
+    paddingHorizontal: spacing.xl,
     alignItems: 'center',
   },
   modalTitle: {
     color: palette.text,
-    fontSize: 24,
-    fontWeight: '700',
-    marginTop: spacing.lg,
+    fontSize: 20,
+    fontWeight: '800',
+    marginTop: spacing.md,
+    letterSpacing: -0.3,
     textAlign: 'center',
+  },
+  modalTitleSmall: {
+    fontSize: 17,
+  },
+  modalDevice: {
+    color: palette.whoopBlue,
+    fontSize: 14,
+    fontWeight: '700',
+    marginTop: 4,
+    letterSpacing: 0.2,
   },
   modalSubtitle: {
     marginTop: spacing.sm,
     color: palette.textMuted,
-    lineHeight: 22,
+    lineHeight: 20,
+    fontSize: 13,
     textAlign: 'center',
+    maxWidth: 260,
+  },
+  dotsRow: {
+    flexDirection: 'row',
+    gap: 6,
+    marginTop: spacing.lg,
+  },
+  dot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: palette.whoopBlue,
+    opacity: 0.5,
+  },
+
+  /* Shared text util */
+  textShrink: {
+    fontSize: 11,
   },
 });

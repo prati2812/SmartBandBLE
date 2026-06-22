@@ -1,21 +1,27 @@
 export const palette = {
-  bg: '#050816',
-  bgElevated: '#0B1220',
-  bgCard: 'rgba(10, 18, 31, 0.82)',
-  bgCardStrong: '#0E1729',
-  surface: '#111C31',
-  border: 'rgba(130, 167, 255, 0.12)',
-  borderStrong: 'rgba(94, 234, 255, 0.32)',
-  text: '#F5F7FB',
-  textMuted: '#8A96B2',
-  textSoft: '#64748B',
-  cyan: '#63F3FF',
-  cyanStrong: '#00C2FF',
-  blue: '#5E8CFF',
+  bg: '#000000',
+  bgElevated: '#050505',
+  bgCard: 'rgba(12, 12, 12, 0.85)',
+  bgCardStrong: '#121212',
+  surface: '#151515',
+  border: 'rgba(255, 255, 255, 0.08)',
+  borderStrong: 'rgba(255, 255, 255, 0.15)',
+  text: '#FFFFFF',
+  textMuted: '#A0A0A0',
+  textSoft: '#6E6E6E',
+  cyan: '#0077FF',
+  cyanStrong: '#0055DD',
+  blue: '#2979FF',
   green: '#4ADE80',
   amber: '#FBBF24',
   red: '#FB7185',
   white: '#FFFFFF',
+  
+  // Whoop branding colors
+  whoopGreen: '#00E676', // High Recovery
+  whoopYellow: '#FFAB00', // Moderate Recovery/Strain
+  whoopRed: '#FF1744', // Low Recovery/Peak Strain
+  whoopBlue: '#2979FF', // Sleep/Sync
 };
 
 export const spacing = {
@@ -37,17 +43,46 @@ export const radii = {
 
 export const shadows = {
   glow: {
-    shadowColor: palette.cyan,
+    shadowColor: '#2979FF',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.22,
     shadowRadius: 18,
     elevation: 8,
   },
+  glowWhoopGreen: {
+    shadowColor: '#00E676',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.35,
+    shadowRadius: 20,
+    elevation: 8,
+  },
+  glowWhoopYellow: {
+    shadowColor: '#FFAB00',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.35,
+    shadowRadius: 20,
+    elevation: 8,
+  },
+  glowWhoopRed: {
+    shadowColor: '#FF1744',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.35,
+    shadowRadius: 20,
+    elevation: 8,
+  },
+  glowWhoopBlue: {
+    shadowColor: '#2979FF',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.35,
+    shadowRadius: 20,
+    elevation: 8,
+  },
   card: {
-    shadowColor: '#020617',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 14 },
-    shadowOpacity: 0.28,
+    shadowOpacity: 0.4,
     shadowRadius: 26,
     elevation: 10,
   },
 };
+

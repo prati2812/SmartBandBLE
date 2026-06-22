@@ -48,14 +48,14 @@ export default function Splash({ navigation }: Props) {
               cx="64"
               cy="64"
               r="48"
-              stroke="rgba(99,243,255,0.18)"
+              stroke="rgba(0,119,255,0.18)"
               strokeWidth="10"
               fill="none"
             />
 
             <Path
               d="M64 16 A48 48 0 1 1 64 112"
-              stroke={palette.cyan}
+              stroke={palette.whoopBlue}
               strokeWidth="10"
               strokeLinecap="round"
               fill="none"
@@ -65,8 +65,8 @@ export default function Splash({ navigation }: Props) {
               cx="64"
               cy="64"
               r="18"
-              fill="#0B1220"
-              stroke={palette.cyan}
+              fill={palette.bgElevated}
+              stroke={palette.whoopBlue}
               strokeWidth="3"
             />
           </Svg>

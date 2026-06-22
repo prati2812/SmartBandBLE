@@ -44,7 +44,7 @@ export default function PrimaryButton({
       ]}>
       <View style={styles.row}>
         {loading ? (
-          <ActivityIndicator color={variant === 'primary' ? palette.bg : palette.cyan} />
+          <ActivityIndicator color={variant === 'primary' ? palette.bg : palette.whoopBlue} />
         ) : (
           <>
             {icon ? <View style={styles.icon}>{icon}</View> : null}
@@ -73,16 +73,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   primary: {
-    backgroundColor: palette.cyan,
-    borderColor: palette.cyan,
-    ...shadows.glow,
+    backgroundColor: palette.whoopBlue,
+    borderColor: palette.whoopBlue,
+    ...shadows.glowWhoopBlue,
   },
   secondary: {
-    backgroundColor: 'rgba(99, 243, 255, 0.08)',
+    backgroundColor: 'rgba(41, 121, 255, 0.08)',
     borderColor: palette.borderStrong,
   },
   disabled: {
-    backgroundColor: 'rgba(17, 28, 49, 0.7)',
+    backgroundColor: 'rgba(12, 12, 12, 0.7)',
     borderColor: palette.border,
     shadowOpacity: 0,
     elevation: 0,
@@ -103,12 +103,13 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
   },
   primaryText: {
-    color: palette.bg,
+    color: '#000000',
   },
   secondaryText: {
-    color: palette.cyan,
+    color: palette.whoopBlue,
   },
   disabledText: {
     color: palette.textSoft,
   },
 });
+

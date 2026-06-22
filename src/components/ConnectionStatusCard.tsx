@@ -1,11 +1,10 @@
 import React from 'react';
 import { Device } from 'react-native-ble-plx';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import Svg, { Circle } from 'react-native-svg';
 
 import { ConnectionStatus } from '../types/ble';
 import { formatSyncTime } from '../utils/format';
-import { palette, radii, shadows, spacing } from '../utils/theme';
+import { palette, radii, spacing } from '../utils/theme';
 
 interface ConnectionStatusCardProps {
   status: ConnectionStatus;
@@ -16,11 +15,11 @@ interface ConnectionStatusCardProps {
 }
 
 const statusMap: Record<ConnectionStatus, { label: string; color: string }> = {
-  idle: { label: 'Ready to pair', color: palette.textMuted },
-  scanning: { label: 'Scanning nearby', color: palette.cyan },
-  connecting: { label: 'Creating secure link', color: palette.amber },
-  connected: { label: 'Band connected', color: palette.green },
-  syncing: { label: 'Syncing payload', color: palette.cyan },
+  idle: { label: 'Disconnected', color: palette.textMuted },
+  scanning: { label: 'Scanning...', color: palette.whoopBlue },
+  connecting: { label: 'Connecting...', color: palette.amber },
+  connected: { label: 'Connected', color: palette.whoopGreen },
+  syncing: { label: 'Syncing...', color: palette.whoopBlue },
 };
 
 export default function ConnectionStatusCard({
@@ -34,57 +33,33 @@ export default function ConnectionStatusCard({
   const isConnected = status === 'connected' || status === 'syncing';
 
   return (
-    <View style={styles.card}>
-      <View style={styles.topRow}>
-        <View>
-          <Text style={styles.eyebrow}>Smart band link</Text>
-          <Text style={styles.title}>{currentStatus.label}</Text>
+    <View style={styles.container}>
+      <View style={styles.infoCol}>
+        <View style={styles.statusRow}>
+          <View style={[styles.indicator, { backgroundColor: currentStatus.color }]} />
+          <Text style={styles.statusLabel}>{currentStatus.label}</Text>
         </View>
-
-        <View style={styles.orbitWrap}>
-          <Svg width="70" height="70" viewBox="0 0 70 70" fill="none">
-            <Circle cx="35" cy="35" r="28" stroke="rgba(255,255,255,0.08)" strokeWidth="6" />
-            <Circle
-              cx="35"
-              cy="35"
-              r="28"
-              stroke={currentStatus.color}
-              strokeWidth="6"
-              strokeDasharray="118 58"
-              strokeLinecap="round"
-              transform="rotate(-90 35 35)"
-            />
-          </Svg>
-          <View style={[styles.dot, { backgroundColor: currentStatus.color }]} />
-        </View>
+        <Text style={styles.deviceLabel}>
+          {device ? (device.name || device.localName || 'Smart Band') : 'No wearable linked'}
+        </Text>
       </View>
 
-      <Text style={styles.body}>
-        {device
-          ? `${device.name || device.localName || 'Smart Band'} is active and ready for BLE alarm writes.`
-          : 'Scan for nearby wearables to establish a secure Bluetooth connection and unlock haptic alarm sync.'}
-      </Text>
-
-      <View style={styles.metaStrip}>
-        <View>
-          <Text style={styles.metaLabel}>Last activity</Text>
-          <Text style={styles.metaValue}>{formatSyncTime(lastSyncedAt)}</Text>
+      {lastSyncedAt && (
+        <View style={styles.syncCol}>
+          <Text style={styles.syncLabel}>Last Sync</Text>
+          <Text style={styles.syncValue} numberOfLines={1}>{formatSyncTime(lastSyncedAt)}</Text>
         </View>
-        <View style={styles.livePill}>
-          <View style={[styles.liveDot, { backgroundColor: currentStatus.color }]} />
-          <Text style={styles.liveText}>{status.toUpperCase()}</Text>
-        </View>
-      </View>
+      )}
 
       <Pressable
         onPress={isConnected ? onDisconnect : onScanPress}
         style={({ pressed }) => [
-          styles.actionButton,
-          isConnected ? styles.disconnectButton : styles.scanButton,
+          styles.actionBtn,
+          isConnected ? styles.disconnectBtn : styles.connectBtn,
           pressed && styles.pressed,
         ]}>
-        <Text style={[styles.actionText, isConnected ? styles.disconnectText : styles.scanText]}>
-          {isConnected ? 'Disconnect wearable' : 'Scan devices'}
+        <Text style={[styles.actionText, isConnected ? styles.disconnectText : styles.connectText]}>
+          {isConnected ? 'Disconnect' : 'Connect'}
         </Text>
       </Pressable>
     </View>
@@ -92,120 +67,93 @@ export default function ConnectionStatusCard({
 }
 
 const styles = StyleSheet.create({
-  card: {
+  container: {
     backgroundColor: palette.bgCard,
-    borderRadius: radii.xl,
-    borderWidth: 1,
-    borderColor: palette.borderStrong,
-    padding: spacing.xl,
-    ...shadows.card,
-  },
-  topRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  eyebrow: {
-    color: palette.textSoft,
-    fontSize: 12,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-    marginBottom: 6,
-  },
-  title: {
-    color: palette.text,
-    fontSize: 24,
-    fontWeight: '700',
-    maxWidth: 220,
-  },
-  orbitWrap: {
-    width: 76,
-    height: 76,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  dot: {
-    position: 'absolute',
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    shadowColor: palette.cyan,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.5,
-    shadowRadius: 10,
-  },
-  body: {
-    marginTop: spacing.lg,
-    color: palette.textMuted,
-    lineHeight: 22,
-    fontSize: 14,
-  },
-  metaStrip: {
-    marginTop: spacing.lg,
-    backgroundColor: 'rgba(255,255,255,0.03)',
     borderRadius: radii.md,
-    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: palette.border,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    marginTop: spacing.md,
   },
-  metaLabel: {
-    color: palette.textSoft,
-    fontSize: 11,
-    marginBottom: 4,
+  infoCol: {
+    flex: 1.2,
   },
-  metaValue: {
-    color: palette.text,
-    fontWeight: '600',
-    maxWidth: 180,
-  },
-  livePill: {
+  statusRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 8,
-    borderRadius: radii.pill,
-    backgroundColor: 'rgba(255,255,255,0.04)',
+    gap: 6,
+    marginBottom: 2,
   },
-  liveDot: {
+  indicator: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    marginRight: 8,
   },
-  liveText: {
+  statusLabel: {
+    color: palette.text,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  deviceLabel: {
     color: palette.textMuted,
     fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 0.8,
   },
-  actionButton: {
-    marginTop: spacing.lg,
-    minHeight: 52,
-    borderRadius: radii.md,
+  syncCol: {
+    flex: 1,
+    alignItems: 'center',
+    borderLeftWidth: 1,
+    borderLeftColor: palette.border,
+    borderRightWidth: 1,
+    borderRightColor: palette.border,
+    paddingHorizontal: spacing.xs,
+    marginHorizontal: spacing.xs,
+  },
+  syncLabel: {
+    color: palette.textSoft,
+    fontSize: 9,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  syncValue: {
+    color: palette.text,
+    fontSize: 11,
+    fontWeight: '500',
+  },
+  actionBtn: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: radii.sm,
     justifyContent: 'center',
     alignItems: 'center',
+    minWidth: 90,
   },
-  scanButton: {
-    backgroundColor: palette.cyan,
+  connectBtn: {
+    backgroundColor: palette.whoopBlue,
   },
-  disconnectButton: {
-    backgroundColor: 'rgba(251, 113, 133, 0.08)',
+  disconnectBtn: {
+    backgroundColor: 'rgba(255, 23, 68, 0.1)',
     borderWidth: 1,
-    borderColor: 'rgba(251, 113, 133, 0.32)',
+    borderColor: 'rgba(255, 23, 68, 0.3)',
   },
   actionText: {
-    fontSize: 14,
+    fontSize: 11,
     fontWeight: '700',
-    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
-  scanText: {
+  connectText: {
     color: palette.bg,
   },
   disconnectText: {
-    color: palette.red,
+    color: palette.whoopRed,
   },
   pressed: {
-    opacity: 0.92,
+    opacity: 0.75,
   },
 });
+

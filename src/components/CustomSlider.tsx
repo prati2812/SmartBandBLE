@@ -46,11 +46,11 @@ export default function CustomSlider({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: palette.bgCard,
+    backgroundColor: palette.bgCardStrong,
     borderWidth: 1,
     borderColor: palette.border,
-    borderRadius: radii.lg,
-    padding: spacing.lg,
+    borderRadius: radii.md,
+    padding: spacing.md,
   },
   header: {
     flexDirection: 'row',
@@ -60,46 +60,52 @@ const styles = StyleSheet.create({
   },
   label: {
     color: palette.textSoft,
-    fontSize: 12,
+    fontSize: 10,
     textTransform: 'uppercase',
-    letterSpacing: 0.8,
-  },
-  value: {
-    color: palette.cyan,
-    fontSize: 24,
+    letterSpacing: 1,
     fontWeight: '700',
   },
+  value: {
+    color: palette.whoopBlue,
+    fontSize: 22,
+    fontWeight: '800',
+  },
   track: {
-    height: 12,
+    height: 10,
     borderRadius: radii.pill,
-    backgroundColor: '#1E293B',
+    backgroundColor: 'rgba(255,255,255,0.06)',
     overflow: 'hidden',
   },
   progress: {
     height: '100%',
     borderRadius: radii.pill,
-    backgroundColor: palette.cyan,
+    backgroundColor: palette.whoopBlue,
   },
   presetRow: {
-    marginTop: spacing.lg,
+    marginTop: spacing.md,
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
   preset: {
-    minWidth: 52,
+    minWidth: 48,
     alignItems: 'center',
-    paddingVertical: 10,
+    paddingVertical: 8,
     borderRadius: radii.pill,
     backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
   },
   presetActive: {
-    backgroundColor: palette.cyan,
+    backgroundColor: palette.whoopBlue,
+    borderColor: palette.whoopBlue,
   },
   presetText: {
     color: palette.textMuted,
     fontWeight: '700',
+    fontSize: 12,
   },
   presetTextActive: {
-    color: palette.bg,
+    color: '#000000',
   },
 });
+

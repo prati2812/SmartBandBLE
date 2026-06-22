@@ -80,12 +80,12 @@ export default function BLELoader({
         <Svg width="24" height="24" viewBox="0 0 24 24" fill="none">
           <Path
             d="M12 2V22M12 2L17 7L7 17M7 7L17 17L12 22"
-            stroke={palette.cyan}
+            stroke={palette.whoopBlue}
             strokeWidth="2.4"
             strokeLinecap="round"
             strokeLinejoin="round"
           />
-          <Circle cx="10" cy="14" r="1.4" fill={palette.cyan} />
+          <Circle cx="10" cy="14" r="1.4" fill={palette.whoopBlue} />
         </Svg>
       </View>
     </View>
@@ -100,19 +100,19 @@ const styles = StyleSheet.create({
   ring: {
     position: 'absolute',
     borderWidth: 1.5,
-    borderColor: 'rgba(99, 243, 255, 0.45)',
-    backgroundColor: 'rgba(99, 243, 255, 0.04)',
+    borderColor: 'rgba(41, 121, 255, 0.40)',
+    backgroundColor: 'rgba(41, 121, 255, 0.04)',
   },
   core: {
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(7, 15, 29, 0.98)',
+    backgroundColor: '#0C0C0F',
     borderWidth: 1,
-    borderColor: palette.borderStrong,
-    shadowColor: palette.cyan,
+    borderColor: 'rgba(41, 121, 255, 0.25)',
+    shadowColor: palette.whoopBlue,
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.35,
-    shadowRadius: 18,
+    shadowOpacity: 0.40,
+    shadowRadius: 20,
     elevation: 8,
   },
 });
